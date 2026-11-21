@@ -88,12 +88,13 @@
       </div>
 
       <div class="card">
-        <h3>🧑‍🏫 Entrenador y sesión</h3>
-        <p class="label">Avatar del entrenador</p>
-        <div class="seg" id="sGenero">
-          <button data-v="m">🙋‍♂️ Masculino</button>
-          <button data-v="f">🙋‍♀️ Femenino</button>
-        </div>
+        <h3>🎭 Mi entrenador</h3>
+        <p class="hint">12 personajes articulados: humanos, mascotas y objetos. Todos hacen los mismos ejercicios y sostienen tu equipo.</p>
+        <div class="gallery" id="galeriaPerfil"></div>
+      </div>
+
+      <div class="card">
+        <h3>🔊 Voz, sonido y vibración</h3>
         <label class="switch-row"><span>🔊 Voz guía en español</span><input type="checkbox" id="sVoz" class="switch"></label>
         <label class="switch-row"><span>📳 Vibración</span><input type="checkbox" id="sVibra" class="switch"></label>
         <label class="switch-row"><span>🔔 Pitidos</span><input type="checkbox" id="sBeep" class="switch"></label>
@@ -173,6 +174,7 @@
           <button class="btn btn-ghost" id="btnRegenerar">🔄 Nueva rutina</button>
           <button class="btn btn-ai" id="btnIA" hidden>✨ Con IA</button>
         </div>
+        <button class="btn btn-ghost" id="btnEntrenadorRutina">🎭 Entrenador</button>
         <button class="btn btn-primary btn-xl" id="btnEmpezar">▶️ Empezar entrenamiento</button>
       </div>
       <div id="travelBanner" class="notice" hidden></div>
@@ -187,10 +189,7 @@
         <h2 class="tab-title">🧑‍🏫 Entrenador en Vivo</h2>
         <div class="card coach-preview">
           <div class="avatar-box" id="avatarIdle"></div>
-          <div class="seg" id="sGenero2">
-            <button data-v="m">🙋‍♂️ Él</button>
-            <button data-v="f">🙋‍♀️ Ella</button>
-          </div>
+          <button class="btn btn-ghost" id="btnCambiarEntrenador">🎭 Cambiar entrenador</button>
           <p class="hint center" id="coachIdleInfo"></p>
           <button class="btn btn-primary btn-xl" id="btnIniciarCoach">▶️ Iniciar rutina de hoy</button>
           <p class="hint center">La pantalla se mantendrá encendida mientras entrenas.</p>

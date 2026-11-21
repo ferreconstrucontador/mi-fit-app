@@ -7,11 +7,11 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.0.1'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.1.0'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
-  const { Avatar, propsFor } = window.MiFitAvatar;
+  const { Avatar, propsFor, CHARS, GROUPS, ACCENTS } = window.MiFitAvatar;
 
   // ---------- Utilidades ----------
   const $ = (s, r = document) => r.querySelector(s);
@@ -38,7 +38,7 @@
   };
 
   const DEF_PROFILE = { edad: 30, sexo: 'm', peso: 70, estatura: 170, nivel: 'principiante', dias: 3, objetivo: 'hipertrofia', lesiones: [] };
-  const DEF_SETTINGS = { genero: 'm', voz: true, vibra: true, beep: true, duracion: 30, apiKey: '', sesion: 0 };
+  const DEF_SETTINGS = { genero: 'm', personaje: '', acento: 'naranja', voz: true, vibra: true, beep: true, duracion: 30, apiKey: '', sesion: 0 };
 
   const S = {
     profile: Object.assign({}, DEF_PROFILE, LS.get(K.profile, {})),
@@ -54,6 +54,11 @@
     calOffset: 0,
     chartMetric: 'peso'
   };
+  // Entrenador elegido (migra el antiguo ajuste masculino/femenino)
+  if (!CHARS.some(c => c.id === S.settings.personaje)) S.settings.personaje = S.settings.genero === 'f' ? 'atleta_f' : 'atleta_m';
+  if (!ACCENTS.some(a => a.id === S.settings.acento)) S.settings.acento = 'naranja';
+  const charById = id => CHARS.find(c => c.id === id) || CHARS[0];
+  const avOpts = () => ({ char: S.settings.personaje, accent: S.settings.acento });
   const saveProfile = () => { LS.set(K.profile, S.profile); S.routineDirty = true; };
   const saveSettings = () => LS.set(K.settings, S.settings);
   const travelActive = () => S.travel && S.travel.fecha === dayKey();
@@ -208,7 +213,7 @@
     const les = p.lesiones || [];
     $('#pLesiones').innerHTML = `<button class="chip none ${les.length ? '' : 'on'}" data-v="none">✅ Ninguna</button>` +
       DB.LESIONES.map(l => `<button class="chip ${les.includes(l.id) ? 'on' : ''}" data-v="${l.id}" aria-pressed="${les.includes(l.id)}">${l.i} ${l.n}</button>`).join('');
-    setSeg('#sGenero', S.settings.genero); setSeg('#sGenero2', S.settings.genero);
+    const gp = $('#galeriaPerfil'); if (!gp._avs || !gp._avs.length) renderGallery(gp);
     $('#sVoz').checked = !!S.settings.voz; $('#sVibra').checked = !!S.settings.vibra; $('#sBeep').checked = !!S.settings.beep;
     $('#sApiKey').value = S.settings.apiKey || '';
     $('#keyStatus').textContent = S.settings.apiKey ? '🟢 Clave guardada en este dispositivo.' : '⚪ Sin clave: se usa el generador offline integrado.';
@@ -245,9 +250,7 @@
       if (b.dataset.v === 'none') l = []; else l = l.includes(b.dataset.v) ? l.filter(x => x !== b.dataset.v) : l.concat(b.dataset.v);
       S.profile.lesiones = l; saveProfile(); renderPerfil();
     });
-    const setGenero = v => { S.settings.genero = v; saveSettings(); setSeg('#sGenero', v); setSeg('#sGenero2', v); if (idleAvatar) idleAvatar.set({ gender: v }); if (liveAvatar) liveAvatar.set({ gender: v }); };
-    $('#sGenero').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setGenero(b.dataset.v); });
-    $('#sGenero2').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setGenero(b.dataset.v); });
+    bindGallery($('#galeriaPerfil'));
     $('#sVoz').addEventListener('change', e => { S.settings.voz = e.target.checked; saveSettings(); });
     $('#sVibra').addEventListener('change', e => { S.settings.vibra = e.target.checked; saveSettings(); });
     $('#sBeep').addEventListener('change', e => { S.settings.beep = e.target.checked; saveSettings(); });
@@ -392,7 +395,7 @@
     // Miniaturas estáticas del avatar (sin animación para ahorrar batería)
     $$('#rutinaLista .ex-thumb').forEach(el => {
       const card = el.closest('.ex-card'); const it = r.items[+card.dataset.idx]; const e = DB.BY_ID[it.id];
-      const a = new Avatar(el, { anim: e.a, gender: S.settings.genero, props: propsFor(e.eq) });
+      const a = new Avatar(el, { anim: e.a, ...avOpts(), props: propsFor(e.eq) });
       a.stop(); a.renderAt(0.5); thumbAvatars.push(a);
     });
   }
@@ -401,6 +404,8 @@
     $('#btnRegenerar').addEventListener('click', () => { generarOffline(true); toast('🔄 Nueva rutina generada'); vibrate(20); });
     $('#btnIA').addEventListener('click', generarIA);
     $('#btnEmpezar').addEventListener('click', startWorkout);
+    $('#btnEntrenadorRutina').addEventListener('click', openGalleryModal);
+    $('#btnCambiarEntrenador').addEventListener('click', openGalleryModal);
     $('#rutinaLista').addEventListener('click', e => {
       const b = e.target.closest('[data-act]'); if (!b) return;
       const idx = +b.closest('.ex-card').dataset.idx; const it = S.routine.items[idx];
@@ -421,7 +426,7 @@
     const body = openModal(e.n, `<div class="avatar-box" id="mvAvatar"></div>
       <p><b>🎯 Músculos:</b> ${esc(e.m)}</p><p><b>✅ Técnica:</b> ${esc(e.tip)}</p>
       <p class="hint">Equipo: ${e.eq.length ? e.eq.map(q => DB.EQUIPO_NOMBRE[q]).join(' + ') : 'Peso corporal'} · Nivel ${'⭐'.repeat(e.lv)}${les ? ` · Precaución: ${esc(les)}` : ''}</p>`);
-    modalAvatars.push(new Avatar(body.querySelector('#mvAvatar'), { anim: e.a, gender: S.settings.genero, props: propsFor(e.eq) }));
+    modalAvatars.push(new Avatar(body.querySelector('#mvAvatar'), { anim: e.a, ...avOpts(), props: propsFor(e.eq) }));
   }
 
   // ---------- Gemini (opcional) ----------
@@ -493,6 +498,61 @@ Usa "reps" o "segundos" (el otro en null).`;
   }
 
   // =========================================================================
+  //  GALERÍA DE ENTRENADORES (12 personajes sobre el mismo esqueleto)
+  // =========================================================================
+  const PREVIEW_ANIMS = ['jack', 'squat', 'curl', 'lunge', 'press', 'shadowbox'];
+  let galTab = null;
+
+  function renderGallery(root, opts = {}) {
+    if (root._avs) root._avs.forEach(a => a.destroy());
+    root._avs = []; root._opts = opts;
+    const cur = charById(S.settings.personaje);
+    const tab = galTab || cur.g;
+    root.innerHTML = `
+      <div class="gal-preview"><div class="avatar-box gal-av"></div><div class="gal-info"><b>${esc(cur.n)}</b><small>${esc(cur.d)}</small></div></div>
+      <div class="gtabs" role="tablist" aria-label="Tipo de entrenador">${GROUPS.map(g => `<button role="tab" class="${g.id === tab ? 'on' : ''}" aria-selected="${g.id === tab}" data-gtab="${g.id}">${g.i} ${g.n}</button>`).join('')}</div>
+      <div class="gal-grid" role="list">${CHARS.filter(c => c.g === tab).map(c => `<button role="listitem" class="gal-tile ${c.id === cur.id ? 'on' : ''}" aria-pressed="${c.id === cur.id}" data-char="${c.id}"><span class="gal-thumb" data-thumb="${c.id}"></span><b>${esc(c.n)}</b></button>`).join('')}</div>
+      <p class="label">🎨 Color de atuendo / acento</p>
+      <div class="swatches" role="group" aria-label="Color de acento">${ACCENTS.map(a => `<button class="sw ${a.id === S.settings.acento ? 'on' : ''}" style="--c:${a.c}" data-acc="${a.id}" aria-pressed="${a.id === S.settings.acento}" aria-label="${esc(a.n)}" title="${esc(a.n)}"></button>`).join('')}</div>
+      <p class="hint center">${esc(ACCENTS.find(a => a.id === S.settings.acento).n)}</p>`;
+    const pv = new Avatar(root.querySelector('.gal-av'), Object.assign({ anim: 'jack' }, avOpts()));
+    pv.cycle(PREVIEW_ANIMS, 3200); root._avs.push(pv);
+    $$('.gal-thumb', root).forEach(el => {
+      const a = new Avatar(el, { anim: 'breathe', char: el.dataset.thumb, accent: S.settings.acento });
+      a.stop(); a.renderAt(0.5); root._avs.push(a);
+    });
+    if (opts.modal) root._avs.forEach(a => modalAvatars.push(a));
+  }
+  function bindGallery(root) {
+    root.addEventListener('click', e => {
+      const t = e.target.closest('[data-gtab],[data-char],[data-acc]'); if (!t) return;
+      if (t.dataset.gtab) { galTab = t.dataset.gtab; renderGallery(root, root._opts); return; }
+      if (t.dataset.char) { S.settings.personaje = t.dataset.char; toast(`🎭 ${charById(t.dataset.char).n}`); }
+      else { S.settings.acento = t.dataset.acc; toast(`🎨 ${ACCENTS.find(a => a.id === t.dataset.acc).n}`); }
+      vibrate(15); applyTrainer();
+    });
+  }
+  function updateTrainerLabels() {
+    const n = charById(S.settings.personaje).n;
+    $('#btnEntrenadorRutina').textContent = `🎭 Entrenador: ${n} ›`;
+    $('#btnCambiarEntrenador').textContent = `🎭 Entrenador: ${n} · Cambiar`;
+  }
+  function applyTrainer() {
+    saveSettings();
+    if (idleAvatar) idleAvatar.set(avOpts());
+    if (liveAvatar) liveAvatar.set(avOpts());
+    updateTrainerLabels();
+    $$('.gallery').forEach(g => { if (g._avs && g._avs.length) renderGallery(g, g._opts); });
+    if (S.tab === 'rutina') renderRutina();
+  }
+  function openGalleryModal() {
+    const body = openModal('🎭 Elige tu entrenador', '<div class="gallery" id="galeriaModal"></div><button class="btn btn-primary btn-lg" id="galOk">✔️ Listo</button>');
+    const g = body.querySelector('#galeriaModal');
+    bindGallery(g); renderGallery(g, { modal: true });
+    body.querySelector('#galOk').addEventListener('click', closeModal);
+  }
+
+  // =========================================================================
   //  PESTAÑA 4 · ENTRENADOR EN VIVO
   // =========================================================================
   let idleAvatar = null, liveAvatar = null;
@@ -500,8 +560,8 @@ Usa "reps" o "segundos" (el otro en null).`;
     ensureRoutine();
     const r = S.routine; const first = r && r.items.find(i => i.block === 'pri');
     const e = first ? DB.BY_ID[first.id] : null;
-    if (!idleAvatar) idleAvatar = new Avatar($('#avatarIdle'), { anim: e ? e.a : 'breathe', gender: S.settings.genero, props: e ? propsFor(e.eq) : [] });
-    else { idleAvatar.set({ anim: e ? e.a : 'breathe', gender: S.settings.genero, props: e ? propsFor(e.eq) : [] }); idleAvatar.start(); }
+    if (!idleAvatar) idleAvatar = new Avatar($('#avatarIdle'), { anim: e ? e.a : 'breathe', ...avOpts(), props: e ? propsFor(e.eq) : [] });
+    else { idleAvatar.set({ anim: e ? e.a : 'breathe', ...avOpts(), props: e ? propsFor(e.eq) : [] }); idleAvatar.start(); }
     $('#coachIdleInfo').innerHTML = r ? `<b>${esc(r.diaNombre)}</b> · ${r.items.length} ejercicios · ~${DB.estimarMinutos(r)} min${e ? `<br>Primer ejercicio fuerte: ${esc(e.n)}` : ''}` : '';
   }
 
@@ -580,7 +640,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#coachIdle').hidden = true; $('#player').hidden = false; $('#plExit').hidden = true;
     document.body.classList.add('training');
     if (idleAvatar) idleAvatar.stop();
-    if (!liveAvatar) liveAvatar = new Avatar($('#avatarLive'), { gender: S.settings.genero });
+    if (!liveAvatar) liveAvatar = new Avatar($('#avatarLive'), avOpts());
     liveAvatar.start();
     pushOverlay('player');
     lockScreen();
@@ -608,7 +668,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       $('#plSet').textContent = st.sets > 1 ? `Serie ${st.set} de ${st.sets}` : (st.mode === 'time' ? 'Por tiempo' : '');
       $('#plMuscles').textContent = '🎯 ' + e.m;
       $('#plTip').textContent = '✅ ' + (it.nota || e.tip);
-      liveAvatar.set({ anim: e.a, gender: S.settings.genero, props: propsFor(e.eq) });
+      liveAvatar.set({ anim: e.a, ...avOpts(), props: propsFor(e.eq) });
       liveAvatar.start(); liveAvatar.ensure(); // arranque explícito del bucle al empezar la serie
       if (st.mode === 'reps') {
         $('#plDone').hidden = false;
@@ -628,7 +688,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       $('#plSet').textContent = st.type === 'prep' ? 'Ponte en posición' : 'Hidrátate con un trago de agua';
       $('#plMuscles').textContent = '';
       $('#plTip').textContent = st.type === 'prep' ? '✅ ' + ne.tip : 'Inhala por la nariz, exhala lento por la boca.';
-      liveAvatar.set({ anim: st.type === 'prep' ? ne.a : 'breathe', gender: S.settings.genero, props: st.type === 'prep' ? propsFor(ne.eq) : [] });
+      liveAvatar.set({ anim: st.type === 'prep' ? ne.a : 'breathe', ...avOpts(), props: st.type === 'prep' ? propsFor(ne.eq) : [] });
       $('#plLabel').textContent = st.type === 'prep' ? 'Prepárate' : 'Descanso';
       $('#plNext').hidden = false;
       $('#plNextName').textContent = ne.n;
@@ -926,7 +986,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     Object.values(K).forEach(k => { try { const v = localStorage.getItem(k); if (v != null) ls[k] = v; } catch (e) { /* */ } });
     // Por privacidad, la API Key NO se incluye en el respaldo
     if (ls[K.settings]) { try { const s = JSON.parse(ls[K.settings]); s.apiKey = ''; ls[K.settings] = JSON.stringify(s); } catch (e) { /* */ } }
-    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
+    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), entrenador: { personaje: S.settings.personaje, acento: S.settings.acento }, localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
   }
   const backupName = () => `mifitapp-respaldo-${dayKey()}.json`;
   async function exportBackup() {
@@ -947,8 +1007,9 @@ Usa "reps" o "segundos" (el otro en null).`;
   function markBackup() { LS.set(K.lastBackup, Date.now()); $('#banner').hidden = true; if (S.tab === 'perfil') renderPerfil(); }
   async function restoreData(data) {
     if (!data || data.app !== 'MiFitApp') throw new Error('El archivo no es un respaldo de MiFitApp');
-    const keepKey = S.settings.apiKey;
+    const keepKey = LS.get(K.settings, {}).apiKey || S.settings.apiKey;
     Object.entries(data.localStorage || {}).forEach(([k, v]) => { if (k.startsWith('mifit_')) try { localStorage.setItem(k, v); } catch (e) { /* */ } });
+    if (data.entrenador) { const st = LS.get(K.settings, {}); if (data.entrenador.personaje) st.personaje = data.entrenador.personaje; if (data.entrenador.acento) st.acento = data.entrenador.acento; LS.set(K.settings, st); }
     if (keepKey) { const s = LS.get(K.settings, {}); s.apiKey = keepKey; LS.set(K.settings, s); }
     await IDB.clear('workouts'); await IDB.clear('metrics');
     for (const w of data.workouts || []) await IDB.put('workouts', w);
@@ -1010,7 +1071,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     { tab: 'gimnasio', sel: '#equipoLista .eq-grid', t: '3 · Tu gimnasio', x: 'Marca el equipo que tienes. ¿De viaje? Usa “Modo Viaje” para recalcular solo por hoy.' },
     { tab: 'rutina', sel: '#tab-rutina .hero-card', t: '4 · Tu rutina inteligente', x: 'Elige 15, 30, 45 o 60 minutos. Calentamiento → bloque principal → estiramiento. Con API Key de Gemini puedes generarla con IA.' },
     { tab: 'rutina', sel: '#rutinaLista .ex-card', t: '5 · Cambia y aprende', x: 'Toca “Ver técnica” para ver al entrenador animado o “Cambiar ejercicio” para una alternativa equivalente.' },
-    { tab: 'entrenador', sel: '#coachIdle .card', t: '6 · Entrenador en vivo', x: 'Avatar arriba, cronómetro abajo. Voz en español, pitidos, vibración y pantalla siempre encendida. En los descansos califica: Fácil / Justo / Muy pesado.' },
+    { tab: 'entrenador', sel: '#coachIdle .card', t: '6 · Entrenador en vivo', x: 'Avatar arriba, cronómetro abajo. Voz en español, pitidos, vibración y pantalla siempre encendida. En los descansos califica: Fácil / Justo / Muy pesado. Elige entre 12 entrenadores y cambia su color.' },
     { tab: 'progreso', sel: '#kpis', t: '7 · Progreso y respaldo', x: 'Racha, calorías, medidas y gráficas. Haz respaldos desde Perfil y compártelos por WhatsApp o Drive. ¡A entrenar!' }
   ];
   let tourI = 0, tourPrevTab = null;
@@ -1061,6 +1122,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     ['¿Por qué la pantalla no se apaga?', 'Durante el entrenamiento activamos “Screen Wake Lock” para que veas el cronómetro. Se libera al pausar o terminar.'],
     ['¿Cómo no pierdo mi progreso?', 'Descarga o comparte tu respaldo (Perfil → Datos y respaldo). Además guardamos copias espejo automáticas de los últimos 7 días dentro del teléfono.'],
     ['El botón “Atrás” de mi celular…', 'Cierra primero ventanas y el reproductor, luego regresa a Mi Rutina y solo después sale de la app. En el entrenamiento te pregunta antes de salir.'],
+    ['¿Puedo cambiar de entrenador?', 'Sí: en Perfil → Mi entrenador, o con el botón “🎭 Entrenador” antes de empezar. Hay 12 personajes (humanos, mascotas y objetos) y 6 colores de acento. Tu elección se guarda y va en el respaldo.'],
     ['¿Cómo se calculan las calorías?', 'Con valores MET de cada ejercicio × tu peso × tiempo real de trabajo, más el gasto en los descansos. Es una estimación.']
   ];
   function renderFAQ() { $('#faq').innerHTML = FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join(''); }
@@ -1073,6 +1135,8 @@ Usa "reps" o "segundos" (el otro en null).`;
   //  CICLO DE PESTAÑAS
   // =========================================================================
   function onTabShown(t, prev) {
+    if (prev === 'perfil' && t !== 'perfil') { const g = $('#galeriaPerfil'); if (g._avs) { g._avs.forEach(a => a.destroy()); g._avs = []; g.innerHTML = ''; } }
+    updateTrainerLabels();
     if (prev === 'entrenador' && t !== 'entrenador' && idleAvatar && !P.active) idleAvatar.stop();
     if (t === 'perfil') renderPerfil();
     else if (t === 'gimnasio') renderGimnasio();
@@ -1105,6 +1169,7 @@ Usa "reps" o "segundos" (el otro en null).`;
   // ---------- Arranque ----------
   async function init() {
     applyTheme(themePref());
+    saveSettings();
     $('#appVersion').textContent = `MiFitApp v${APP_VERSION} · Hecho para entrenar sin excusas`;
     await IDB.open();
     await loadData();

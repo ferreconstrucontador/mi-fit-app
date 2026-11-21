@@ -116,6 +116,7 @@
   // ---------- Matemática ----------
   const rad = a => a * Math.PI / 180;
   const add = (p, v, len) => [p[0] + v[0] * len, p[1] + v[1] * len];
+  const lp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
   function lerpPose(a, b, u) {
     const o = {};
@@ -123,34 +124,34 @@
     return o;
   }
 
-  // Calcula articulaciones en coordenadas de modelo (pelvis en 0,0)
-  function solve(p, anim, gender) {
+  // Calcula las articulaciones (pelvis en 0,0). El ESQUELETO es el mismo para los 12
+  // personajes: solo cambian el grosor, el vestuario y la cabeza (S.hr, S.sw, S.hw).
+  function solve(p, anim, S) {
     const front = anim.view === 'f';
-    const fem = gender === 'f';
     const tt = rad(180 - p.t);
     const tdir = [Math.sin(tt), Math.cos(tt)];
     const perp = [-Math.cos(tt), Math.sin(tt)];
     const P = [0, 0];
     const neck = add(P, tdir, L.T);
     const ht = rad(180 - p.t + p.hd);
-    const head = add(neck, [Math.sin(ht), Math.cos(ht)], L.NECK + L.R);
+    const head = add(neck, [Math.sin(ht), Math.cos(ht)], L.NECK + S.hr);
     const Sc = add(P, tdir, L.T - 5);
-    const sw = front ? (fem ? 15 : 18) : 0, hw = front ? (fem ? 9 : 8) : 0;
+    const sw = front ? S.sw : 0, hw = front ? S.hw : 0;
     const side = sgn => (front ? sgn : 1);
     const d = (a, sgn) => { const r = rad(a); return [Math.sin(r) * side(sgn), Math.cos(r)]; };
     const armRel = anim.armRel ? -p.t : 0;
     const J = { P, neck, head, front };
     for (const [k, sgn] of [['L', -1], ['R', 1]]) {
-      const S = add(Sc, perp, sw * sgn);
+      const Sh = add(Sc, perp, sw * sgn);
       const s = p['s' + k] + armRel, e = p['e' + k];
-      const E = add(S, d(s, sgn), L.UA);
+      const E = add(Sh, d(s, sgn), L.UA);
       const Wr = add(E, d(s + e, sgn), L.FA);
       const Hp = add(P, perp, hw * sgn);
       const h = p['h' + k], kn = p['k' + k];
       const K = add(Hp, d(h, sgn), L.TH);
       const A = add(K, d(h - kn, sgn), L.SH);
       const Ft = front ? [A[0] + 6 * sgn, A[1] + 1] : add(A, d(h - kn + 90, 1), L.FT);
-      J['S' + k] = S; J['E' + k] = E; J['W' + k] = Wr; J['H' + k] = Hp; J['K' + k] = K; J['A' + k] = A; J['F' + k] = Ft;
+      J['S' + k] = Sh; J['E' + k] = E; J['W' + k] = Wr; J['H' + k] = Hp; J['K' + k] = K; J['A' + k] = A; J['F' + k] = Ft;
     }
     return J;
   }
@@ -161,74 +162,368 @@
     for (const k of PTS.concat('head')) o[k] = [J[k][0] + dx, J[k][1] + dy];
     return o;
   }
-  function bounds(J) {
+  function bounds(J, S) {
     let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
     for (const k of PTS) { const [x, y] = J[k]; minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
-    minX = Math.min(minX, J.head[0] - L.R); maxX = Math.max(maxX, J.head[0] + L.R);
-    minY = Math.min(minY, J.head[1] - L.R); maxY = Math.max(maxY, J.head[1] + L.R);
+    minX = Math.min(minX, J.head[0] - S.hr); maxX = Math.max(maxX, J.head[0] + S.hr);
+    minY = Math.min(minY, J.head[1] - S.hr); maxY = Math.max(maxY, J.head[1] + S.hr);
     return { minX, maxX, minY, maxY };
   }
-  function anchorY(J, anim) {
+  function anchorY(J, anim, S) {
     if (anim.anchor === 'hands') return (anim.handY || BAR_Y) - Math.min(J.WL[1], J.WR[1]);
-    return GROUND - 6 - bounds(J).maxY + (J.head && 0);
+    return GROUND - 6 - bounds(J, S).maxY;
+  }
+
+  // =========================================================================
+  //  PERSONAJES: 12 modelos sobre el MISMO esqueleto
+  // =========================================================================
+  const ACCENTS = [
+    { id: 'naranja', n: 'Naranja energético', c: '#ff5a1f' },
+    { id: 'azul', n: 'Azul eléctrico', c: '#1e88ff' },
+    { id: 'verde', n: 'Verde neón', c: '#22d760' },
+    { id: 'morado', n: 'Morado', c: '#8b5cf6' },
+    { id: 'rosa', n: 'Rosa coral', c: '#ff6b81' },
+    { id: 'gris', n: 'Negro / Gris', c: '#454d5b' }
+  ];
+  const GROUPS = [
+    { id: 'humanos', n: 'Humanos', i: '🧍' },
+    { id: 'mascotas', n: 'Mascotas', i: '🐾' },
+    { id: 'objetos', n: 'Objetos', i: '🤖' }
+  ];
+  const hexRGB = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mixC = (a, b, t) => { const x = hexRGB(a), y = hexRGB(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  const shade = (c, t) => mixC(c, '#000000', t);
+  const tint = (c, t) => mixC(c, '#ffffff', t);
+
+  // Dimensiones base (humano atlético). Cada personaje sobrescribe lo que necesite.
+  const BASE = {
+    sw: 18, hw: 8, hpf: 11, wf: 14, ds: 10, dh: 8.5, ws: 9, // anchos de torso (frente y perfil)
+    hr: 13, legW: 13, armW: 9.5, shortsW: 16, sleeveW: 12, shirtW: 7, handR: 4.6, shoeW: 8,
+    pantsFull: false, legwarm: false, wrist: false, tail: 0, tailW: 8, tailLen: 30,
+    jr: 0, hairStyle: 'short', eyes: 'dot', mouth: 'smile', band: null, outline: null, fx: []
+  };
+  const CHARS = [
+    { id: 'atleta_m', n: 'Atleta Masculino', g: 'humanos', d: 'Deportivo clásico', kind: 'human', head: 'human', b: {},
+      col: A => ({ skin: '#e9b48c', hair: '#2b1d14', shirt: A.c, shorts: '#2c3550', shoe: '#ffffff' }) },
+    { id: 'atleta_f', n: 'Atleta Femenina', g: 'humanos', d: 'Coleta y conjunto deportivo', kind: 'human', head: 'human',
+      b: { sw: 15, hw: 9, hpf: 13, wf: 10, ds: 9, dh: 10, ws: 8, hr: 12.5, legW: 12.2, armW: 8.8, shortsW: 15, sleeveW: 10, hairStyle: 'ponytail' },
+      col: A => ({ skin: '#e8b794', hair: '#5a2d14', shirt: A.c, shorts: '#2f3358', shoe: '#ffffff' }) },
+    { id: 'fuerza', n: 'Fuerza / Robusto', g: 'humanos', d: 'Complexión ancha de halterofilia', kind: 'human', head: 'human',
+      b: { sw: 23, hw: 10, hpf: 14, wf: 18, ds: 13, dh: 10.5, ws: 12, hr: 13.5, legW: 16, armW: 13.5, shortsW: 20, sleeveW: 0, shirtW: 9, handR: 5.6, shoeW: 9, hairStyle: 'buzz', beltBig: true, mouth: 'flat' },
+      col: A => ({ skin: '#c98c66', hair: '#1d1512', shirt: A.c, shorts: '#2a2f3a', shoe: '#e9eaee' }) },
+    { id: 'zen', n: 'Zen / Estilizado', g: 'humanos', d: 'Ligero, ideal para movilidad y yoga', kind: 'human', head: 'human',
+      b: { sw: 13.5, hw: 7.5, hpf: 9, wf: 8, ds: 8, dh: 7, ws: 7, hr: 12, legW: 10.5, armW: 7.6, shortsW: 12.5, sleeveW: 9, handR: 4, shoeW: 7, hairStyle: 'bun', eyes: 'closed', pantsFull: true, outline: '#cfc6b3' },
+      col: A => ({ skin: '#f1cba9', hair: '#3b2a22', shirt: A.c, shorts: '#e8e1d2', shoe: '#f1cba9' }) },
+    { id: 'ninja', n: 'Ninja / Agilidad', g: 'humanos', d: 'Atuendo oscuro con cinta en la frente', kind: 'human', head: 'human',
+      b: { sw: 17, hw: 8, hpf: 11, wf: 12, ds: 9.5, dh: 8.5, ws: 8.5, hr: 12.8, legW: 12.5, armW: 9, shortsW: 14.5, sleeveW: 11, pantsFull: true, wrist: true, hairStyle: 'covered', eyes: 'sharp', mouth: 'flat', band: 'acc', bandTails: true, outline: '#566079' },
+      col: A => ({ skin: '#e2ad88', hair: '#15161b', shirt: '#2d3240', shorts: '#272c39', shoe: '#363c4c' }) },
+    { id: 'retro80', n: 'Retro 80s / Aeróbicos', g: 'humanos', d: 'Banda en la cabeza y calentadores', kind: 'human', head: 'human',
+      b: { sw: 16.5, hw: 8.5, hpf: 12, wf: 12, ds: 9.5, dh: 9.5, ws: 8.5, hr: 12.8, legW: 12.4, armW: 9, shortsW: 15, sleeveW: 0, legwarm: true, wrist: true, hairStyle: 'puff', band: 'acc', bandStripes: true },
+      col: A => ({ skin: '#d99f78', hair: '#7a3f1d', shirt: A.c, shorts: shade(A.c, .38), shoe: '#ffffff' }) },
+    { id: 'gorila', n: 'Gorila Fuerza', g: 'mascotas', d: 'Robusto y musculoso', kind: 'animal', head: 'gorila',
+      b: { sw: 24, hw: 11, hpf: 14, wf: 19, ds: 14, dh: 11, ws: 12.5, hr: 14.5, legW: 15.5, armW: 14, shortsW: 20, sleeveW: 0, shirtW: 9, handR: 6.4, shoeW: 10, wrist: true, fx: ['chest'] },
+      col: A => ({ skin: '#413d46', hair: '#2b2830', shirt: '#413d46', shorts: A.c, shoe: '#2b2830', patch: '#8c7866', chest: '#625b69' }) },
+    { id: 'zorro', n: 'Zorrito Atleta', g: 'mascotas', d: 'Con banda deportiva (guiño a MiNutriApp)', kind: 'animal', head: 'zorro',
+      b: { sw: 16, hw: 8, hpf: 11, wf: 12, ds: 9.5, dh: 8.5, ws: 8.5, hr: 13, legW: 11.5, armW: 9, shortsW: 15, sleeveW: 0, handR: 4.8, shoeW: 9, tail: 1, tailW: 11, tailLen: 32, band: 'acc', fx: ['belly'] },
+      col: A => ({ skin: '#ee8a2b', hair: '#3b2a20', shirt: '#ee8a2b', shorts: A.c, shoe: '#3b2a20', white: '#fff3e6', dark: '#3b2a20' }) },
+    { id: 'jaguar', n: 'Jaguar Maya', g: 'mascotas', d: 'Atlético con manchas estilizadas', kind: 'animal', head: 'jaguar',
+      b: { sw: 18, hw: 8.5, hpf: 12, wf: 13, ds: 10.5, dh: 9, ws: 9.5, hr: 13, legW: 12.5, armW: 10.5, shortsW: 16, sleeveW: 0, handR: 5.2, shoeW: 9, tail: 1, tailW: 6.5, tailLen: 36, fx: ['spots'] },
+      col: A => ({ skin: '#e0a43a', hair: '#3b2714', shirt: '#e0a43a', shorts: A.c, shoe: '#6a4420', light: '#f7e3b4', spot: '#3b2714' }) },
+    { id: 'panda', n: 'Panda Fitness', g: 'mascotas', d: 'Amigable con muñequeras deportivas', kind: 'animal', head: 'panda',
+      b: { sw: 19, hw: 9, hpf: 13, wf: 15, ds: 12, dh: 10.5, ws: 11.5, hr: 15, legW: 15, armW: 12.5, shortsW: 18, sleeveW: 0, shirtW: 8, handR: 6, shoeW: 10, wrist: true, tail: 1, tailW: 9, tailLen: 8, outline: '#b9bfcc' },
+      col: A => ({ skin: '#2b2b31', hair: '#2b2b31', shirt: '#f1f2f6', shorts: A.c, shoe: '#2b2b31', white: '#f1f2f6', dark: '#2b2b31' }) },
+    { id: 'fitbot', n: 'Fit-Bot (Androide)', g: 'objetos', d: 'Robot con juntas luminosas', kind: 'robot', head: 'robot',
+      b: { sw: 17, hw: 8, hpf: 10.5, wf: 12, ds: 9.5, dh: 8.5, ws: 9, hr: 12.5, legW: 10, armW: 8.6, shortsW: 13, sleeveW: 0, shirtW: 9, handR: 4.4, shoeW: 8, jr: 4.4, fx: ['core'] },
+      col: A => ({ skin: '#aeb8c6', hair: '#707c8e', shirt: '#c6cdd9', shorts: '#6f7b8d', shoe: '#4c5666' }) },
+    { id: 'maniqui', n: 'Maniquí Articulado', g: 'objetos', d: 'Figura de madera con esferas', kind: 'mannequin', head: 'maniqui',
+      b: { sw: 15, hw: 7, hpf: 9, wf: 8, ds: 8, dh: 7, ws: 7, hr: 12, legW: 9, armW: 8, shortsW: 0, sleeveW: 0, shirtW: 6, handR: 4, shoeW: 7, jr: 5 },
+      col: A => ({ skin: '#dcb98c', hair: '#b8905f', shirt: '#dcb98c', shorts: '#c6a173', shoe: '#c6a173' }) }
+  ];
+  const CHAR_BY_ID = {}; CHARS.forEach(c => { CHAR_BY_ID[c.id] = c; });
+  const ACCENT_BY_ID = {}; ACCENTS.forEach(a => { ACCENT_BY_ID[a.id] = a; });
+
+  function resolveSpec(charId, accentId) {
+    const ch = CHAR_BY_ID[charId] || CHARS[0];
+    const ac = ACCENT_BY_ID[accentId] || ACCENTS[0];
+    const A = { c: ac.c, d: shade(ac.c, .28), l: tint(ac.c, .42) };
+    const S = Object.assign({}, BASE, ch.b, ch.col(A));
+    S.id = ch.id; S.kind = ch.kind; S.head = ch.head;
+    S.acc = A.c; S.accD = A.d; S.accL = A.l;
+    S.skinD = shade(S.skin, .2);
+    return S;
+  }
+  // Los colores base de las clases CSS (.av-*) viajan como variables en el contenedor.
+  function applyVars(el, S) {
+    const v = {
+      '--av-skin': S.skin, '--av-skin-d': S.skinD, '--av-hair': S.hair,
+      '--av-shirt': S.shirt, '--av-shirt-d': shade(S.shirt, .22),
+      '--av-shorts': S.shorts, '--av-shorts-d': shade(S.shorts, .3),
+      '--av-shoe': S.shoe, '--av-shoe-d': shade(S.shoe, .2),
+      '--av-leg-w': S.legW, '--av-arm-w': S.armW, '--av-shirt-w': S.shirtW
+    };
+    for (const k in v) el.style.setProperty(k, v[k]);
   }
 
   // ---------- Dibujo ----------
   const f1 = n => Math.round(n * 10) / 10;
   const pt = p => f1(p[0]) + ',' + f1(p[1]);
-  const seg = (a, b, w, cls) => `<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" stroke-width="${w}" class="${cls}"/>`;
+  const seg = (a, b, w, cls) => `<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" stroke-width="${f1(w)}" class="${cls}"/>`;
+  const segc = (a, b, w, col, op) => `<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" stroke="${col}" stroke-width="${f1(w)}" stroke-linecap="round"${op ? ` opacity="${op}"` : ''}/>`;
   const poly = (a, b, c, cls) => `<polyline points="${pt(a)} ${pt(b)} ${pt(c)}" class="${cls}" fill="none"/>`;
+  const circ = (c, r, fill, ex) => `<circle cx="${f1(c[0])}" cy="${f1(c[1])}" r="${f1(r)}" fill="${fill}"${ex || ''}/>`;
+  const ellip = (c, rx, ry, fill, ang, ex) => `<ellipse cx="${f1(c[0])}" cy="${f1(c[1])}" rx="${f1(rx)}" ry="${f1(ry)}" fill="${fill}" transform="rotate(${f1(ang || 0)} ${f1(c[0])} ${f1(c[1])})"${ex || ''}/>`;
+  const tri = (a, b, c, fill) => `<polygon points="${pt(a)} ${pt(b)} ${pt(c)}" fill="${fill}" stroke="${fill}" stroke-width="2" stroke-linejoin="round"/>`;
+  // Franja perpendicular a un hueso (calentadores, cintas)
+  function stripe(a, b, t, w, thick, col) {
+    const c = lp(a, b, t), dx = b[0] - a[0], dy = b[1] - a[1], n = Math.hypot(dx, dy) || 1, nx = -dy / n, ny = dx / n;
+    return segc([c[0] - nx * w / 2, c[1] - ny * w / 2], [c[0] + nx * w / 2, c[1] + ny * w / 2], thick, col);
+  }
 
-  function drawLimb(J, k, far) {
+  function drawLimb(J, k, far, S) {
     const tone = far ? ' far' : '';
-    return poly(J['H' + k], J['K' + k], J['A' + k], 'av-leg' + tone) +
-      seg(J['H' + k], [(J['H' + k][0] * 0.45 + J['K' + k][0] * 0.55), (J['H' + k][1] * 0.45 + J['K' + k][1] * 0.55)], 16, 'av-shorts' + tone) +
-      seg(J['A' + k], J['F' + k], 8, 'av-shoe' + tone);
+    const Hp = J['H' + k], K = J['K' + k], A = J['A' + k], F = J['F' + k];
+    let s = poly(Hp, K, A, 'av-leg' + tone);
+    if (S.shortsW) {
+      if (S.pantsFull) s += seg(Hp, K, S.shortsW - 1.5, 'av-shorts' + tone) + seg(K, A, S.shortsW - 3, 'av-shorts' + tone);
+      else s += seg(Hp, lp(Hp, K, .55), S.shortsW, 'av-shorts' + tone);
+    }
+    if (S.legwarm) {
+      const c1 = far ? S.accD : S.acc;
+      s += segc(lp(K, A, .12), lp(K, A, .82), S.legW + 3.4, c1);
+      s += stripe(K, A, .2, S.legW + 3.4, 1.8, '#ffffff') + stripe(K, A, .3, S.legW + 3.4, 1.8, '#ffffff');
+    }
+    s += seg(A, F, S.shoeW, 'av-shoe' + tone);
+    if (S.kind === 'animal') s += circ(F, S.shoeW * .52, far ? shade(S.shoe, .2) : S.shoe);
+    return s;
   }
-  function drawArm(J, k, far) {
+  function drawArm(J, k, far, S) {
     const tone = far ? ' far' : '';
-    return poly(J['S' + k], J['E' + k], J['W' + k], 'av-arm' + tone) +
-      seg(J['S' + k], [(J['S' + k][0] * 0.6 + J['E' + k][0] * 0.4), (J['S' + k][1] * 0.6 + J['E' + k][1] * 0.4)], 12, 'av-sleeve' + tone) +
-      `<circle cx="${f1(J['W' + k][0])}" cy="${f1(J['W' + k][1])}" r="4.6" class="av-hand${tone}"/>`;
+    const Sh = J['S' + k], E = J['E' + k], Wr = J['W' + k];
+    let s = poly(Sh, E, Wr, 'av-arm' + tone);
+    if (S.sleeveW) s += seg(Sh, lp(Sh, E, .4), S.sleeveW, 'av-sleeve' + tone);
+    if (S.wrist) {
+      s += segc(lp(E, Wr, .66), lp(E, Wr, .94), S.armW + 3, far ? S.accD : S.acc);
+    }
+    if (S.kind === 'robot') s += circ(Wr, S.handR + .8, '#4c5666');
+    else s += `<circle cx="${f1(Wr[0])}" cy="${f1(Wr[1])}" r="${S.handR}" class="av-hand${tone}"/>`;
+    return s;
   }
-  function drawTorso(J, p, gender) {
-    const tt = rad(180 - p.t), perp = [-Math.cos(tt), Math.sin(tt)];
-    const fem = gender === 'f', front = J.front;
-    const shW = front ? (fem ? 15 : 18) : (fem ? 9 : 10), hpW = front ? (fem ? 13 : 11) : (fem ? 10 : 8.5);
+
+  // Marco del torso: u = lateral (frente) o hacia delante (perfil); v = a lo largo de la columna.
+  function torsoFrame(p) {
+    const tt = rad(180 - p.t);
+    const tdir = [Math.sin(tt), Math.cos(tt)], perp = [-Math.cos(tt), Math.sin(tt)];
+    return { tdir, perp, ang: Math.atan2(tdir[0], -tdir[1]) * 180 / Math.PI };
+  }
+
+  function drawTorso(J, p, S) {
+    const { tdir, perp, ang } = torsoFrame(p), front = J.front;
+    const T = (u, v) => add(add(J.P, tdir, v), perp, u);
+    const shW = front ? S.sw : S.ds, hpW = front ? S.hpf : S.dh, wW = front ? S.wf : S.ws;
     const a = add(J.P, perp, hpW), b = add(J.P, perp, -hpW);
-    const top = add(J.P, [Math.sin(tt), Math.cos(tt)], L.T - 2);
-    const c = add(top, perp, -shW), dd = add(top, perp, shW);
-    const waist = add(J.P, [Math.sin(tt), Math.cos(tt)], L.T * 0.45);
-    const wW = fem ? (front ? 10 : 8) : (front ? 14 : 9);
+    const top = add(J.P, tdir, L.T - 2);
+    const c = add(top, perp, -shW), d = add(top, perp, shW);
+    const waist = add(J.P, tdir, L.T * .45);
     const w1 = add(waist, perp, wW), w2 = add(waist, perp, -wW);
-    return `<path d="M${pt(a)} L${pt(w1)} L${pt(dd)} L${pt(c)} L${pt(w2)} L${pt(b)} Z" class="av-shirt"/>` +
-      `<path d="M${pt(add(J.P, perp, hpW + 1))} L${pt(add(J.P, perp, -hpW - 1))}" class="av-belt"/>`;
-  }
-  function drawHead(J, p, gender) {
-    const [x, y] = J.head, r = L.R, fem = gender === 'f';
-    const ht = rad(180 - p.t + p.hd);
-    const up = [Math.sin(ht), Math.cos(ht)];           // hacia la coronilla
-    const fwd = [Math.cos(ht), -Math.sin(ht)];          // hacia la cara
-    let s = seg(J.neck, add(J.neck, up, L.NECK + 2), 8, 'av-skin-l');
-    if (fem) {
-      const pony = J.front ? add([x, y], up, r * 0.2) : add(add([x, y], fwd, -r * 1.05), up, r * 0.15);
-      s += `<ellipse cx="${f1(pony[0])}" cy="${f1(pony[1])}" rx="${J.front ? 15 : 7}" ry="${J.front ? 14 : 10}" class="av-hair"/>`;
-    }
-    s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${r}" class="av-skin"/>`;
-    // Cabello (casquete)
-    const c1 = add([x, y], up, r), back = add([x, y], fwd, -r), frontH = add([x, y], fwd, r);
-    if (J.front) {
-      const lft = [x - r, y - 2], rgt = [x + r, y - 2];
-      s += `<path d="M${pt(lft)} Q${f1(x)},${f1(y - r * 1.7)} ${pt(rgt)} Q${f1(x)},${f1(y - r * 0.7)} ${pt(lft)} Z" class="av-hair"/>`;
-      s += `<circle cx="${f1(x - 4.5)}" cy="${f1(y + 1)}" r="1.6" class="av-eye"/><circle cx="${f1(x + 4.5)}" cy="${f1(y + 1)}" r="1.6" class="av-eye"/>`;
-      s += `<path d="M${f1(x - 4)},${f1(y + 6)} Q${f1(x)},${f1(y + 9)} ${f1(x + 4)},${f1(y + 6)}" class="av-mouth"/>`;
+    let s = '';
+    if (S.kind === 'mannequin') {
+      const g = 3.6;
+      const wu = add(J.P, tdir, L.T * .45 + g), wl = add(J.P, tdir, L.T * .45 - g);
+      s += `<path d="M${pt(add(wu, perp, wW))} L${pt(d)} L${pt(c)} L${pt(add(wu, perp, -wW))} Z" class="av-shirt"/>`;
+      s += `<path d="M${pt(a)} L${pt(add(wl, perp, wW))} L${pt(add(wl, perp, -wW))} L${pt(b)} Z" class="av-shirt"/>`;
+      s += segc(add(waist, perp, -wW - 3), add(waist, perp, wW + 3), 5.5, S.acc);
+      s += circ(waist, 4.6, shade(S.skin, .16)) + circ(add(waist, [-1, -1], 1.6), 1.5, tint(S.skin, .45));
     } else {
-      const midFront = add(add([x, y], fwd, r * 0.55), up, r * 0.35);
-      s += `<path d="M${pt(back)} Q${pt(add(c1, fwd, -r * 0.9))} ${pt(c1)} Q${pt(add(c1, fwd, r * 0.6))} ${pt(midFront)} Q${f1(x)},${f1(y)} ${pt(back)} Z" class="av-hair"/>`;
-      const eye = add(add([x, y], fwd, r * 0.55), up, r * 0.05);
-      s += `<circle cx="${f1(eye[0])}" cy="${f1(eye[1])}" r="1.6" class="av-eye"/>`;
-      void frontH;
+      const dp = `M${pt(a)} L${pt(w1)} L${pt(d)} L${pt(c)} L${pt(w2)} L${pt(b)} Z`;
+      if (S.outline) s += `<path d="${dp}" fill="${S.outline}" stroke="${S.outline}" stroke-width="${S.shirtW + 2.6}" stroke-linejoin="round"/>`;
+      s += `<path d="${dp}" class="av-shirt"/>`;
     }
+    // Cinturón / short sobre la cadera
+    if (S.kind !== 'mannequin') s += `<path d="M${pt(add(J.P, perp, hpW + 1))} L${pt(add(J.P, perp, -hpW - 1))}" class="av-belt"/>`;
+    if (S.beltBig) {
+      s += segc(add(add(J.P, tdir, 3), perp, hpW + 2), add(add(J.P, tdir, 3), perp, -hpW - 2), 8, '#3a2c24');
+      s += circ(T(front ? 0 : S.dh * .85, 3), 3.4, S.acc);
+    }
+    if (S.id === 'ninja') s += segc(add(add(J.P, tdir, 5), perp, hpW + 1), add(add(J.P, tdir, 5), perp, -hpW - 1), 5, S.acc);
+    // Detalles por personaje
+    for (const fx of S.fx) {
+      if (fx === 'chest') s += ellip(T(front ? 0 : 3, L.T * .6), front ? 11.5 : 4.8, 15, S.chest, ang);
+      else if (fx === 'belly') s += ellip(T(front ? 0 : 3, L.T * .52), front ? 7.5 : 3.6, 15, S.white, ang);
+      else if (fx === 'spots') {
+        const pts = front ? [[-8, .22], [7, .3], [-3, .5], [9, .58], [-9, .7], [3, .8]] : [[4, .22], [-4, .34], [5, .52], [-3, .64], [4, .78]];
+        for (const [u, v] of pts) { const q = T(u, v * L.T); s += circ(q, 2.8, 'none', ` stroke="${S.spot}" stroke-width="1.5"`) + circ(q, 1, S.spot); }
+      } else if (fx === 'core') {
+        const q = T(front ? 0 : 3.2, L.T * .62);
+        s += ellip(T(front ? 0 : 2.4, L.T * .6), front ? 9 : 3.8, 11, '#8e99ab', ang) + circ(q, 6.6, S.acc, ' opacity=".28"') + circ(q, 3.2, S.acc);
+      }
+    }
+    return s;
+  }
+
+  function drawTail(J, p, S, tm) {
+    if (!S.tail) return '';
+    const { tdir, perp } = torsoFrame(p), front = J.front;
+    const T = (u, v) => add(add(J.P, tdir, v), perp, u);
+    const wv = Math.sin(tm / 260) * 3, len = S.tailLen;
+    const base = front ? T(S.hpf * .7, 4) : T(-S.dh + 1, 5);
+    const ctrl = front ? T(S.hpf + len * .5, -2 + wv) : T(-S.dh - len * .55, 1 + wv);
+    const end = front ? T(S.hpf + len * .75, 6 + wv * 1.4) : T(-S.dh - len, 5 + wv * 1.6);
+    const fur = S.skin;
+    let s = `<path d="M${pt(base)} Q${pt(ctrl)} ${pt(end)}" fill="none" stroke="${fur}" stroke-width="${S.tailW}" stroke-linecap="round"/>`;
+    if (S.id === 'zorro') s += circ(end, S.tailW * .62, S.white);
+    if (S.id === 'panda') s = circ(front ? T(S.hpf + 2, 2) : T(-S.dh - 2, 4), 5.5, S.white);
+    if (S.id === 'jaguar') for (const t of [.3, .55, .8]) { const q = [(1 - t) * (1 - t) * base[0] + 2 * t * (1 - t) * ctrl[0] + t * t * end[0], (1 - t) * (1 - t) * base[1] + 2 * t * (1 - t) * ctrl[1] + t * t * end[1]]; s += circ(q, 1.6, S.spot); }
+    return s;
+  }
+
+  function drawJoints(J, S) {
+    if (!S.jr) return '';
+    const big = ['SL', 'SR', 'HL', 'HR'], mid = ['EL', 'ER', 'KL', 'KR'], small = ['WL', 'WR', 'AL', 'AR'];
+    let s = '';
+    const one = (c, r) => {
+      if (S.kind === 'robot') return circ(c, r + 3.4, S.acc, ' opacity=".26"') + circ(c, r, '#2a3340') + circ(c, r - 2.1, S.acc);
+      return circ(c, r, shade(S.skin, .18)) + circ([c[0] - r * .32, c[1] - r * .34], r * .34, tint(S.skin, .5));
+    };
+    for (const k of small) s += one(J[k], S.jr * .72);
+    for (const k of mid) s += one(J[k], S.jr * .92);
+    for (const k of big) s += one(J[k], S.jr);
+    s += one(J.neck, S.jr * .7);
+    return s;
+  }
+
+  // ---------- Cabezas ----------
+  function drawHead(J, p, S, tm) {
+    const c = J.head, r = S.hr, front = J.front;
+    const ht = rad(180 - p.t + p.hd);
+    const up = [Math.sin(ht), Math.cos(ht)], fw = [-up[1], up[0]]; // fw = hacia donde mira (perfil) / derecha (frente)
+    const Q = (u, v) => [c[0] + fw[0] * u * r + up[0] * v * r, c[1] + fw[1] * u * r + up[1] * v * r];
+    const ang = Math.atan2(up[0], -up[1]) * 180 / Math.PI;
+    const E = (u, v, rx, ry, fill, a2, ex) => ellip(Q(u, v), rx * r, ry * r, fill, ang + (a2 || 0), ex);
+    const C = (u, v, rr, fill, ex) => circ(Q(u, v), rr * r, fill, ex);
+    const Ln = (u1, v1, u2, v2, w, col) => segc(Q(u1, v1), Q(u2, v2), w, col);
+    const P2 = (arr, fill, ex) => `<polygon points="${arr.map(q => pt(Q(q[0], q[1]))).join(' ')}" fill="${fill}"${ex || ''}/>`;
+    const wave = Math.sin(tm / 170) * .16;
+    const headCircle = fill => `<circle ${fill ? `fill="${fill}"` : 'class="av-skin"'} cx="${f1(c[0])}" cy="${f1(c[1])}" r="${r}"/>`;
+    const eyeDots = (col, rr) => front ? C(-.36, -.04, rr, col) + C(.36, -.04, rr, col) : C(.56, .05, rr, col);
+    let s = seg(J.neck, add(J.neck, up, L.NECK + 2), 8, 'av-skin-l');
+    const bandCol = S.band === 'acc' ? S.acc : null;
+    const band = () => {
+      if (!bandCol) return '';
+      let b = Ln(-.9, .42, .9, .42, r * .3, bandCol);
+      if (S.bandStripes) b += Ln(-.9, .5, .9, .5, 1.5, '#ffffff') + Ln(-.9, .34, .9, .34, 1.5, '#ffffff');
+      if (S.bandTails || S.id === 'zorro') {
+        if (front) b += Ln(.88, .42, 1.35, .12 + wave, r * .17, bandCol) + Ln(1.35, .12 + wave, 1.5, -.35 + wave, r * .13, bandCol);
+        else b += Ln(-.88, .42, -1.5, .3 + wave, r * .17, bandCol) + Ln(-1.5, .3 + wave, -2.1, .05 + wave * 1.6, r * .13, bandCol);
+      }
+      return b;
+    };
+
+    if (S.head === 'human') {
+      // Detrás de la cabeza
+      if (S.hairStyle === 'ponytail') {
+        s += front
+          ? E(1.0, .15, .24, .62, S.hair, 22)
+          : `<path d="M${pt(Q(-.8, .6))} Q${pt(Q(-2.0, .55 + wave))} ${pt(Q(-1.75, -.95 + wave))}" fill="none" stroke="${S.hair}" stroke-width="${f1(r * .5)}" stroke-linecap="round"/>`;
+      }
+      if (S.hairStyle === 'puff') s += C(-.15, .5, 1.32, S.hair);
+      s += headCircle();
+      if (!front) s += C(-.05, -.02, .2, S.skinD) + C(1.0, -.12, .15, S.skin);
+      // Cabello
+      if (S.hairStyle !== 'puff' && S.hairStyle !== 'covered') {
+        const buzz = S.hairStyle === 'buzz';
+        s += front
+          ? `<path d="M${pt(Q(-1, .1))} Q${pt(Q(0, buzz ? 1.45 : 1.8))} ${pt(Q(1, .1))} Q${pt(Q(0, buzz ? .95 : .72))} ${pt(Q(-1, .1))} Z" fill="${S.hair}"/>`
+          : `<path d="M${pt(Q(-1, -.05))} Q${pt(Q(-1.05, 1.2))} ${pt(Q(0, 1.02))} Q${pt(Q(.75, 1.0))} ${pt(Q(.6, buzz ? .55 : .35))} Q${pt(Q(.1, buzz ? .5 : .2))} ${pt(Q(-1, -.05))} Z" fill="${S.hair}"/>`;
+      } else if (S.hairStyle === 'covered') {
+        s += front
+          ? `<path d="M${pt(Q(-1, .05))} Q${pt(Q(0, 1.9))} ${pt(Q(1, .05))} L${pt(Q(.95, .62))} L${pt(Q(-.95, .62))} Z" fill="${S.hair}"/>`
+          : `<path d="M${pt(Q(-1, -.1))} Q${pt(Q(-1.1, 1.3))} ${pt(Q(0, 1.05))} Q${pt(Q(.9, 1.0))} ${pt(Q(.98, .6))} L${pt(Q(-.2, .55))} Z" fill="${S.hair}"/>`;
+      } else {
+        s += front
+          ? `<path d="M${pt(Q(-1, .1))} Q${pt(Q(0, 1.7))} ${pt(Q(1, .1))} Q${pt(Q(0, .8))} ${pt(Q(-1, .1))} Z" fill="${S.hair}"/>`
+          : `<path d="M${pt(Q(-1, .0))} Q${pt(Q(-1, 1.2))} ${pt(Q(.1, 1.05))} Q${pt(Q(.8, 1.0))} ${pt(Q(.62, .4))} Q${pt(Q(.1, .3))} ${pt(Q(-1, 0))} Z" fill="${S.hair}"/>`;
+      }
+      if (S.hairStyle === 'bun') s += C(-.12, 1.32, .42, S.hair);
+      s += band();
+      // Cara
+      if (S.eyes === 'closed') {
+        const arc = u => `<path d="M${pt(Q(u - .17, .0))} Q${pt(Q(u, -.2))} ${pt(Q(u + .17, .0))}" fill="none" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>`;
+        s += front ? arc(-.36) + arc(.36) : arc(.55);
+      } else if (S.eyes === 'sharp') {
+        s += front ? Ln(-.55, .12, -.2, -.02, 1.8, '#111') + Ln(.55, .12, .2, -.02, 1.8, '#111') + C(-.36, -.07, .09, '#111') + C(.36, -.07, .09, '#111')
+          : Ln(.34, .14, .8, -.02, 1.8, '#111') + C(.58, .0, .09, '#111');
+      } else s += eyeDots('#1a1a1a', .12);
+      if (S.mouth === 'flat') s += front ? Ln(-.25, -.5, .25, -.5, 1.5, '#7a3b2a') : Ln(.5, -.5, .88, -.5, 1.5, '#7a3b2a');
+      else s += front
+        ? `<path d="M${pt(Q(-.3, -.46))} Q${pt(Q(0, -.74))} ${pt(Q(.3, -.46))}" fill="none" stroke="#7a3b2a" stroke-width="1.6" stroke-linecap="round"/>`
+        : `<path d="M${pt(Q(.5, -.46))} Q${pt(Q(.78, -.66))} ${pt(Q(.95, -.4))}" fill="none" stroke="#7a3b2a" stroke-width="1.6" stroke-linecap="round"/>`;
+      return s;
+    }
+
+    if (S.head === 'gorila') {
+      s += front ? C(-1.0, 0, .27, S.hair) + C(1.0, 0, .27, S.hair) : C(-.05, .05, .27, S.hair);
+      s += headCircle();
+      s += E(-.1, .95, .55, .36, S.hair);               // cresta
+      s += front ? E(0, -.12, .68, .62, S.patch) : E(.55, -.1, .5, .62, S.patch);
+      s += front ? Ln(-.58, .3, .58, .3, r * .26, S.hair) : Ln(.1, .34, .98, .3, r * .26, S.hair);
+      s += eyeDots('#16141a', .1);
+      s += front ? C(-.12, -.2, .06, '#2b2830') + C(.12, -.2, .06, '#2b2830') + Ln(-.3, -.5, .3, -.5, 1.6, '#2b2830')
+        : C(.97, -.12, .07, '#2b2830') + Ln(.55, -.5, .95, -.46, 1.6, '#2b2830');
+      return s;
+    }
+
+    if (S.head === 'zorro') {
+      // Orejas (detrás)
+      if (front) s += tri(Q(-.95, .45), Q(-.3, .98), Q(-.75, 1.85), S.skin) + tri(Q(.95, .45), Q(.3, .98), Q(.75, 1.85), S.skin)
+        + tri(Q(-.72, .78), Q(-.45, 1.0), Q(-.7, 1.45), S.dark) + tri(Q(.72, .78), Q(.45, 1.0), Q(.7, 1.45), S.dark);
+      else s += tri(Q(-.2, .95), Q(.5, .8), Q(.28, 1.8), shade(S.skin, .12)) + tri(Q(-.85, .6), Q(-.1, .98), Q(-.55, 1.85), S.skin) + tri(Q(-.6, .85), Q(-.28, 1.0), Q(-.5, 1.5), S.dark);
+      s += headCircle();
+      if (front) s += E(-.5, -.3, .52, .42, S.white, 30) + E(.5, -.3, .52, .42, S.white, -30) + E(0, -.38, .36, .34, S.skin) + E(0, -.42, .3, .26, S.white) + C(0, -.2, .12, S.dark);
+      else s += `<path d="M${pt(Q(.55, .3))} L${pt(Q(1.75, -.28))} L${pt(Q(.6, -.62))} Z" fill="${S.skin}" stroke="${S.skin}" stroke-width="${f1(r * .3)}" stroke-linejoin="round"/>`
+        + E(.55, -.42, .6, .34, S.white, -15) + C(1.85, -.28, .17, S.dark);
+      s += eyeDots(S.dark, .11);
+      s += band();
+      return s;
+    }
+
+    if (S.head === 'jaguar') {
+      s += front ? C(-.82, .78, .33, S.skin) + C(.82, .78, .33, S.skin) + C(-.82, .78, .17, S.spot) + C(.82, .78, .17, S.spot)
+        : C(-.35, .95, .33, shade(S.skin, .1)) + C(.1, 1.0, .33, S.skin) + C(.1, 1.0, .16, S.spot);
+      s += headCircle();
+      s += front ? E(0, -.32, .5, .4, S.light) + C(0, -.12, .12, '#5a2f2a') + Ln(0, -.2, 0, -.46, 1.3, S.spot)
+        : E(.62, -.28, .5, .36, S.light) + C(1.05, -.06, .13, '#5a2f2a');
+      s += front ? C(-.38, .06, .15, '#f2d36b') + C(.38, .06, .15, '#f2d36b') + C(-.38, .06, .07, '#111') + C(.38, .06, .07, '#111')
+        : C(.55, .08, .15, '#f2d36b') + C(.58, .08, .07, '#111');
+      for (const [u, v] of (front ? [[-.7, .45], [.7, .45], [-.62, -.2], [.62, -.2], [0, .7]] : [[-.3, .55], [.1, .7], [-.55, .1], [.15, -.05]])) s += C(u, v, .07, S.spot);
+      return s;
+    }
+
+    if (S.head === 'panda') {
+      s += front ? C(-.78, .78, .38, S.dark) + C(.78, .78, .38, S.dark) : C(-.4, .92, .38, S.dark) + C(.1, 1.0, .35, S.dark);
+      s += `<circle cx="${f1(c[0])}" cy="${f1(c[1])}" r="${r}" fill="${S.white}" stroke="${S.outline}" stroke-width="1.4"/>`;
+      s += front ? E(-.42, .02, .24, .31, S.dark, 22) + E(.42, .02, .24, .31, S.dark, -22) + C(-.42, .04, .07, '#fff') + C(.42, .04, .07, '#fff')
+        : E(.48, .02, .22, .3, S.dark, -15) + C(.52, .05, .07, '#fff');
+      s += front ? E(0, -.34, .34, .26, '#e4e6ec') + E(0, -.2, .15, .1, S.dark) + Ln(0, -.28, 0, -.46, 1.2, S.dark)
+        : E(.85, -.22, .34, .26, '#e4e6ec') + E(1.1, -.08, .12, .1, S.dark);
+      return s;
+    }
+
+    if (S.head === 'robot') {
+      const box = (x1, y1, x2, y2, fill, w) => `<polygon points="${[Q(x1, y2), Q(x2, y2), Q(x2, y1), Q(x1, y1)].map(pt).join(' ')}" fill="${fill}" stroke="${fill}" stroke-width="${w}" stroke-linejoin="round"/>`;
+      s += Ln(0, .9, 0, 1.45, 2.2, '#707c8e') + C(0, 1.52, .2, S.acc, ' opacity=".3"') + C(0, 1.52, .13, S.acc);
+      s += box(-.78, -.78, .78, .78, 'var(--av-skin)', r * .42).replace('fill="var(--av-skin)" stroke="var(--av-skin)"', 'style="fill:var(--av-skin);stroke:var(--av-skin)"');
+      s += front ? box(-.62, -.42, .62, .36, '#1c2431', r * .26) : box(-.05, -.42, .95, .36, '#1c2431', r * .26);
+      s += front
+        ? C(-.3, -.03, .26, S.acc, ' opacity=".3"') + C(.3, -.03, .26, S.acc, ' opacity=".3"') + C(-.3, -.03, .14, S.acc) + C(.3, -.03, .14, S.acc)
+        : C(.5, -.03, .26, S.acc, ' opacity=".3"') + C(.5, -.03, .14, S.acc);
+      s += front ? C(-1.0, 0, .17, '#707c8e') + C(1.0, 0, .17, '#707c8e') : C(-.15, 0, .2, '#707c8e');
+      return s;
+    }
+
+    // Maniquí de madera
+    s += `<ellipse cx="${f1(c[0])}" cy="${f1(c[1])}" rx="${f1(r * .84)}" ry="${f1(r * 1.1)}" class="av-skin" transform="rotate(${f1(ang)} ${f1(c[0])} ${f1(c[1])})"/>`;
+    s += Ln(-.78, .42, .78, .42, 3, S.acc);
+    s += front ? Ln(0, .1, 0, -.7, 1, shade(S.skin, .2)) : Ln(.2, .12, .8, .08, 1, shade(S.skin, .22));
     return s;
   }
 
@@ -315,105 +610,122 @@
   class Avatar {
     constructor(el, opts = {}) {
       this.el = el;
-      this.gender = opts.gender || 'm';
+      this.charId = opts.char || 'atleta_m';
+      this.accentId = opts.accent || 'naranja';
       this.animKey = 'breathe';
       this.props = [];
       this.speed = 1;
       this.t0 = performance.now();
-      this.raf = null;
+      this.raf = null; this.to = null;
       this.paused = false;
+      this.lastFrame = 0;
+      this.cycleList = null;
       el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="avatar-svg" role="img" aria-label="Entrenador virtual"><g class="av-scene"></g><g class="av-body"></g></svg>`;
       this.svgScene = el.querySelector('.av-scene');
       this.svgBody = el.querySelector('.av-body');
-      this._loop = this._loop.bind(this);
+      this._frame = this._frame.bind(this);
       this.set({ anim: opts.anim || 'breathe', props: opts.props || [] });
       this.start();
     }
-    set({ anim, gender, props, speed } = {}) {
-      if (gender) this.gender = gender;
+    set({ anim, char, accent, props, speed } = {}) {
+      if (char) this.charId = char;
+      if (accent) this.accentId = accent;
       if (props) this.props = props;
       if (speed) this.speed = speed;
-      if (anim && ANIMS[anim]) this.animKey = anim; else if (anim) this.animKey = FALLBACK_ANIM; // sin pose propia: animación dinámica por defecto
-      this.el.classList.toggle('fem', this.gender === 'f');
+      // Sin pose propia → animación dinámica por defecto (nunca se queda estático)
+      if (anim) this.animKey = ANIMS[anim] ? anim : FALLBACK_ANIM;
+      this.S = resolveSpec(this.charId, this.accentId);
+      applyVars(this.el, this.S);
       this._prepare();
       this.t0 = performance.now();
       this._render(0);
     }
     _prepare() {
-      const a = ANIMS[this.animKey];
-      const p0 = lerpPose(a.kf[0], a.kf[0], 0);
-      const J0 = solve(p0, a, this.gender);
-      const b = bounds(J0);
-      // Centrar horizontalmente según la envolvente de todos los fotogramas clave
-      let minX = b.minX, maxX = b.maxX, lowP = -1e9;
+      const a = ANIMS[this.animKey], S = this.S;
+      let minX = 1e9, maxX = -1e9, lowP = -1e9, J0 = null;
       for (const k of a.kf) {
-        const Jk = solve(lerpPose(k, k, 0), a, this.gender);
-        const bk = bounds(Jk); minX = Math.min(minX, bk.minX); maxX = Math.max(maxX, bk.maxX);
-        lowP = Math.max(lowP, Jk.P[1] + anchorY(Jk, a));
+        const Jk = solve(lerpPose(k, k, 0), a, S);
+        if (!J0) J0 = Jk;
+        const bk = bounds(Jk, S); minX = Math.min(minX, bk.minX); maxX = Math.max(maxX, bk.maxX);
+        lowP = Math.max(lowP, Jk.P[1] + anchorY(Jk, a, S));
       }
       let dx = W / 2 - (minX + maxX) / 2;
       if (a.view === 'f') dx = W / 2;
       if (a.band === 'front' || a.trx) dx -= 25;
       if (a.band === 'back') dx += 25;
       this.dx = dx;
-      this.first = shift(J0, dx, anchorY(J0, a));
+      this.first = shift(J0, dx, anchorY(J0, a, S));
       this.lowP = lowP;
     }
     _render(time) {
-      const a = ANIMS[this.animKey];
-      const n = a.kf.length;
+      const a = ANIMS[this.animKey], S = this.S, n = a.kf.length;
       const dur = a.dur / this.speed;
-      const tt = ((time % dur) + dur) % dur; // nunca negativo (evita kf[-1])
+      const tt = ((time % dur) + dur) % dur;           // nunca negativo
       const ph = (tt / dur) * n;
       const i = Math.floor(ph) % n, u = ph - Math.floor(ph);
       const e = (1 - Math.cos(Math.PI * u)) / 2;
       const p = lerpPose(a.kf[i], a.kf[(i + 1) % n], e);
-      const J0 = solve(p, a, this.gender);
-      const J = shift(J0, this.dx, anchorY(J0, a) - p.j);
-      const ctx = { time: time * this.speed, first: this.first, lowP: this.lowP };
+      const J0 = solve(p, a, S);
+      const J = shift(J0, this.dx, anchorY(J0, a, S) - p.j);
+      const tm = time * this.speed;
+      const ctx = { time: tm, first: this.first, lowP: this.lowP };
       const props = this.props || [];
       this.svgScene.innerHTML = drawScene(a, ctx, J, props);
-      let b = '';
-      const shadowY = GROUND;
-      b += `<ellipse cx="${f1(J.P[0])}" cy="${shadowY}" rx="${30 - Math.min(p.j, 20)}" ry="4" class="av-shadow"/>`;
+      let b = `<ellipse cx="${f1(J.P[0])}" cy="${GROUND}" rx="${30 - Math.min(p.j, 20)}" ry="4" class="av-shadow"/>`;
       if (J.front) {
-        b += drawLimb(J, 'L', false) + drawLimb(J, 'R', false) + drawTorso(J, p, this.gender) + drawHead(J, p, this.gender) + drawArm(J, 'L', false) + drawArm(J, 'R', false);
+        b += drawTail(J, p, S, tm) + drawLimb(J, 'L', false, S) + drawLimb(J, 'R', false, S) + drawTorso(J, p, S) + drawHead(J, p, S, tm) + drawArm(J, 'L', false, S) + drawArm(J, 'R', false, S);
       } else {
-        b += drawArm(J, 'L', true) + drawLimb(J, 'L', true) + drawTorso(J, p, this.gender) + drawLimb(J, 'R', false) + drawHead(J, p, this.gender) + drawArm(J, 'R', false);
+        b += drawArm(J, 'L', true, S) + drawLimb(J, 'L', true, S) + drawTail(J, p, S, tm) + drawTorso(J, p, S) + drawLimb(J, 'R', false, S) + drawHead(J, p, S, tm) + drawArm(J, 'R', false, S);
       }
-      b += drawProps(J, props, a, ctx);
+      b += drawJoints(J, S) + drawProps(J, props, a, ctx);
       this.svgBody.innerHTML = b;
     }
-    _loop() {
-      // Reprograma SIEMPRE primero: una excepción de dibujo no debe matar el bucle.
-      this.raf = requestAnimationFrame(this._loop);
+    // Doble disparador: requestAnimationFrame + temporizador de respaldo. Si el navegador
+    // móvil no entrega frames (ahorro de energía / WebView), el temporizador sigue animando.
+    _schedule() {
+      this.raf = requestAnimationFrame(this._frame);
+      this.to = setTimeout(this._frame, 90);
+    }
+    _frame() {
+      if (this.raf == null && this.to == null) return;     // detenido
+      cancelAnimationFrame(this.raf); clearTimeout(this.to);
+      this._schedule();                                    // reprograma SIEMPRE primero
       const now = performance.now();
       this.lastFrame = now;
-      if (this.paused) return;
-      try { this._render(Math.max(0, now - this.t0)); } catch (e) { /* se reintenta en el siguiente frame */ }
+      if (this.paused || document.hidden) return;
+      try {
+        if (this.cycleList && now - this.cycleT > this.cycleMs) {
+          this.cycleI = (this.cycleI + 1) % this.cycleList.length; this.cycleT = now;
+          this.set({ anim: this.cycleList[this.cycleI] });
+        }
+        this._render(Math.max(0, now - this.t0));
+      } catch (err) { /* se reintenta en el siguiente frame */ }
     }
     renderAt(frac) { const a = ANIMS[this.animKey]; this._render((a.dur / this.speed) * frac); }
     start() {
-      this.paused = false; this.lastFrame = performance.now();
-      if (!this.raf) this.raf = requestAnimationFrame(this._loop);
+      if (this.raf == null && this.to == null) { this.lastFrame = performance.now(); this._schedule(); }
     }
-    stop() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = null; }
+    stop() { cancelAnimationFrame(this.raf); clearTimeout(this.to); this.raf = null; this.to = null; }
     pause(v = true) { this.paused = v; if (!v) this.ensure(); }
-    // Vigilante: si el navegador dejó de llamar al bucle, lo reinicia y dibuja ya.
+    // Vigilante: si el bucle se detuvo, lo reinicia y dibuja de inmediato.
     ensure() {
       if (this.paused) return;
-      if (!this.raf || performance.now() - (this.lastFrame || 0) > 400) {
-        if (this.raf) cancelAnimationFrame(this.raf);
-        this.raf = null; this.start();
-        try { this._render(Math.max(0, performance.now() - this.t0)); } catch (e) { /* */ }
+      if ((this.raf == null && this.to == null) || performance.now() - (this.lastFrame || 0) > 400) {
+        this.stop(); this.start();
+        try { this._render(Math.max(0, performance.now() - this.t0)); } catch (err) { /* */ }
       }
     }
-    destroy() { this.stop(); this.el.innerHTML = ''; }
+    // Rota por una lista de animaciones (vista previa de la galería)
+    cycle(list, ms) {
+      this.cycleList = list; this.cycleMs = ms; this.cycleI = 0; this.cycleT = performance.now();
+      this.set({ anim: list[0] });
+    }
+    destroy() { this.stop(); this.cycleList = null; this.el.innerHTML = ''; }
   }
 
   // Deriva accesorios a partir del equipo requerido por el ejercicio
   const EQUIP_PROP = { mancuernas: 'dumbbell', kettlebell: 'kettlebell', barra: 'barbell', liga_tubular: 'band', banda_larga: 'band', miniband: 'miniband', cuerda: 'rope', rueda: 'wheel', balon: 'ball', trx: 'trx', barra_dom: 'bar', silla: 'chair' };
   function propsFor(eq) { return (eq || []).map(e => EQUIP_PROP[e]).filter(Boolean); }
 
-  global.MiFitAvatar = { Avatar, ANIMS, propsFor };
+  global.MiFitAvatar = { Avatar, ANIMS, CHARS, GROUPS, ACCENTS, propsFor, FALLBACK_ANIM };
 })(window);

@@ -408,13 +408,13 @@ body.training .toast { bottom: 24px; }
 /* ===== Avatar SVG ===== */
 .avatar-svg { width: 100%; height: 100%; display: block; }
 .av-leg, .av-arm { stroke: var(--av-skin); stroke-linecap: round; stroke-linejoin: round; }
-.av-leg { stroke-width: 13; } .av-arm { stroke-width: 9.5; }
+.av-leg { stroke-width: var(--av-leg-w, 13); } .av-arm { stroke-width: var(--av-arm-w, 9.5); }
 .av-leg.far, .av-arm.far { stroke: var(--av-skin-d); }
 .av-shorts { stroke: var(--av-shorts); stroke-linecap: round; } .av-shorts.far { stroke: var(--av-shorts-d); }
 .av-sleeve { stroke: var(--av-shirt); stroke-linecap: round; } .av-sleeve.far { stroke: var(--av-shirt-d); }
 .av-shoe { stroke: var(--av-shoe); stroke-linecap: round; } .av-shoe.far { stroke: var(--av-shoe-d); }
 .av-hand { fill: var(--av-skin); } .av-hand.far { fill: var(--av-skin-d); }
-.av-shirt { fill: var(--av-shirt); stroke: var(--av-shirt); stroke-width: 7; stroke-linejoin: round; }
+.av-shirt { fill: var(--av-shirt); stroke: var(--av-shirt); stroke-width: var(--av-shirt-w, 7); stroke-linejoin: round; }
 .av-belt { stroke: var(--av-shorts); stroke-width: 9; stroke-linecap: round; }
 .av-skin { fill: var(--av-skin); } .av-skin-l { stroke: var(--av-skin); stroke-linecap: round; }
 .av-hair { fill: var(--av-hair); } .av-eye { fill: #1a1a1a; }
@@ -429,8 +429,6 @@ body.training .toast { bottom: 24px; }
 .av-ball { fill: #8b5cf6; } .av-ball-l { stroke: #5b21b6; stroke-width: 1.5; fill: none; }
 .av-strap { stroke: #eab308; stroke-linecap: round; } .av-strap.far { stroke: #a16207; }
 .av-post { fill: #94a3b8; } .av-wall { fill: rgba(148, 163, 184, .22); } .av-chair { fill: #b45309; }
-/* Avatar femenino */
-.fem { --av-shirt: #e11d74; --av-shirt-d: #a3104f; --av-hair: #4a2511; --av-shorts: #312e81; --av-shorts-d: #1e1b4b; }
 
 /* Ahorro de animaciones del sistema: se reduce la UI, pero el entrenador SIEMPRE se anima
    (la animación del avatar corre por JavaScript y es el contenido principal del entrenamiento). */
@@ -439,3 +437,25 @@ body.training .toast { bottom: 24px; }
   .avatar-svg, .avatar-svg * { animation: revert !important; transition: revert !important; }
 }
 @media (min-width: 600px) { .choice-grid { grid-template-columns: 1fr 1fr; } .eq-grid { grid-template-columns: repeat(3, 1fr); } .kpis { grid-template-columns: repeat(4, 1fr); } }
+
+/* ===== Galería de entrenadores ===== */
+.gallery { display: flex; flex-direction: column; gap: 10px; }
+.gal-preview { display: flex; flex-direction: column; align-items: center; text-align: center; background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 70%); border-radius: var(--radius); padding: 6px 0; }
+.gal-av { max-width: 190px; max-height: 250px; aspect-ratio: 200 / 260; margin: 0 auto; }
+.gal-info { display: flex; flex-direction: column; margin-top: 2px; }
+.gal-info b { font-size: 1.1rem; }
+.gal-info small { color: var(--muted); }
+.gtabs { display: flex; gap: 6px; }
+.gtabs button { flex: 1; min-height: 48px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--surface-2); font-weight: 800; font-size: .88rem; padding: 4px 6px; }
+.gtabs button.on { background: var(--text); border-color: var(--text); color: var(--bg); }
+.gal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.gal-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; min-height: 150px; border-radius: var(--radius-sm); border: 2px solid var(--border); background: var(--surface-2); text-align: center; }
+.gal-tile b { font-size: .76rem; line-height: 1.2; }
+.gal-thumb { display: block; width: 100%; height: 112px; }
+.gal-tile.on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, var(--surface)); box-shadow: inset 0 0 0 1px var(--brand); }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.sw { width: 48px; height: 48px; border-radius: 50%; background: var(--c); border: 3px solid var(--surface); box-shadow: 0 0 0 2px var(--border); position: relative; padding: 0; }
+.sw.on { box-shadow: 0 0 0 3px var(--text); }
+.sw.on::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.coach-preview .btn { max-width: 320px; margin-left: auto; margin-right: auto; }
+.hero-card #btnEntrenadorRutina { min-height: 46px; font-size: .92rem; }

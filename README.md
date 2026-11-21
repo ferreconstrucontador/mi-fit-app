@@ -11,7 +11,7 @@ Todo funciona **100% sin internet** y los datos se quedan en tu teléfono.
 | `css/styles.css` | Temas Claro / Oscuro / Automático y diseño responsivo pensado para móvil |
 | `js/app.js` | Navegación nativa (History API), almacenamiento, perfil, gimnasio, rutina, Gemini, cronómetro, voz, Wake Lock, RPE, progreso, respaldo, tour |
 | `js/ejercicios.js` | Catálogo de equipo, base de ~130 ejercicios, filtros por equipo, nivel y lesiones, y el generador de rutinas |
-| `js/avatar.js` | Motor del avatar SVG (cinemática 2D) con más de 70 animaciones y accesorios |
+| `js/avatar.js` | Motor del avatar SVG (cinemática 2D): 81 animaciones, accesorios y **12 personajes** sobre el mismo esqueleto |
 | `manifest.json` · `sw.js` | Instalación como app nativa y uso sin conexión |
 | `icons/` | Íconos SVG y PNG (192, 512 y maskable) |
 
@@ -27,6 +27,18 @@ Todo funciona **100% sin internet** y los datos se quedan en tu teléfono.
 > Todas las rutas son relativas (`./`), así que funciona en cualquier subcarpeta. El archivo `.nojekyll` evita que GitHub procese los archivos.
 > Para probar en tu computadora: `python3 -m http.server 8000` y abre `http://localhost:8000` (el Service Worker no funciona si abres el archivo directamente con `file://`).
 
+## 🎭 Entrenadores (12 personajes)
+
+Se eligen en **Perfil → Mi entrenador** o con el botón **🎭 Entrenador** de Mi Rutina y de Entrenar. Hay 6 colores de acento (naranja, azul, verde neón, morado, rosa coral y negro/gris) que cambian ropa, cintas y luces. La elección se guarda en `localStorage` (`personaje` y `acento` dentro de `mifit_settings`) y va en el respaldo `.json` (campo `entrenador`).
+
+- **Humanos:** Atleta Masculino, Atleta Femenina, Fuerza / Robusto, Zen / Estilizado, Ninja / Agilidad, Retro 80s.
+- **Mascotas:** Gorila Fuerza, Zorrito Atleta, Jaguar Maya, Panda Fitness.
+- **Objetos:** Fit-Bot (androide con juntas luminosas) y Maniquí Articulado.
+
+Todos comparten el mismo esqueleto, así que ejecutan las 81 animaciones y sostienen ligas, mancuernas, barra, cuerda, TRX y silla. Si un ejercicio no tuviera pose, el avatar hace marcha en el lugar (`FALLBACK_ANIM`) en vez de quedarse quieto.
+
+**Agregar un personaje:** añade una entrada a `CHARS` en `js/avatar.js` (`b` = proporciones, `col` = colores en función del acento, `head` = tipo de cabeza). Si es un tipo de cabeza nuevo, agrégalo a `drawHead`.
+
 ## 🔄 Actualizar la app (versionado)
 
 Cada vez que cambies cualquier archivo:
@@ -34,7 +46,7 @@ Cada vez que cambies cualquier archivo:
 1. Sube la versión en **`sw.js`** → `const VERSION = '1.0.1';`
 2. Pon el mismo número en **`js/app.js`** → `const APP_VERSION = '1.0.1';`
 3. Si agregaste archivos nuevos, añádelos a la lista `ASSETS` de `sw.js`.
-4. Haz commit y push. Los teléfonos descargarán la nueva caché y verán el aviso **"🚀 Nueva versión disponible → Actualizar"**. El cambio no se aplica a mitad de un entrenamiento.
+4. Haz commit y push. Los teléfonos descargarán la nueva caché y verán el aviso **"🚀 Nueva versión disponible → Actualizar"**. **Hay que tocar *Actualizar*** (o cerrar la app por completo y abrirla de nuevo); mientras no se haga, el teléfono sigue con la versión anterior. El número de versión aparece al final de la pestaña Perfil para comprobarlo.
 
 Si no cambias `VERSION`, los usuarios se quedarán con la versión anterior en caché.
 
