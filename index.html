@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MiFitApp · Entrenador personal</title>
+  <meta name="description" content="Entrenamiento personalizado con tu equipo en casa: rutinas inteligentes, entrenador animado, cronómetro y voz guía. 100% offline y privado.">
+  <meta name="theme-color" content="#0E1116" id="metaTheme">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MiFitApp">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <!-- Tema sin parpadeo: se aplica antes de pintar -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('mifit_theme') || 'auto';
+        var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme-pref', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+
+  <!-- ===== Cabecera ===== -->
+  <header class="app-header">
+    <div class="brand">
+      <img src="icons/icon.svg" alt="" class="brand-logo" width="34" height="34">
+      <div>
+        <h1>MiFit<span>App</span></h1>
+        <p class="brand-sub" id="headerSub">Tu entrenador de bolsillo</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="btnTheme" aria-label="Cambiar tema" title="Tema"><span id="themeIcon">🌓</span></button>
+      <button class="pill-btn" id="btnManual" aria-label="Abrir manual">? Manual</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <main id="main">
+    <!-- ===================== PESTAÑA 1: PERFIL ===================== -->
+    <section class="tab" id="tab-perfil" data-tab="perfil" hidden>
+      <h2 class="tab-title">👤 Mi Perfil y Salud</h2>
+
+      <div class="card">
+        <h3>Datos biométricos</h3>
+        <div class="grid-2">
+          <label class="field"><span>Edad</span><input type="number" inputmode="numeric" id="pEdad" min="12" max="99" placeholder="30"></label>
+          <label class="field"><span>Sexo</span>
+            <select id="pSexo"><option value="m">Hombre</option><option value="f">Mujer</option></select>
+          </label>
+          <label class="field"><span>Peso (kg)</span><input type="number" inputmode="decimal" id="pPeso" min="30" max="250" step="0.1" placeholder="70"></label>
+          <label class="field"><span>Estatura (cm)</span><input type="number" inputmode="numeric" id="pEstatura" min="120" max="230" placeholder="170"></label>
+        </div>
+        <div class="stat-row" id="bioStats"></div>
+        <p class="label">Nivel de experiencia</p>
+        <div class="seg" id="pNivel" role="radiogroup">
+          <button data-v="principiante" role="radio">🌱 Principiante</button>
+          <button data-v="intermedio" role="radio">⚡ Intermedio</button>
+          <button data-v="avanzado" role="radio">🔥 Avanzado</button>
+        </div>
+        <p class="label">Días disponibles por semana</p>
+        <div class="seg seg-num" id="pDias" role="radiogroup">
+          <button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button><button data-v="6">6</button>
+        </div>
+        <p class="hint" id="splitHint"></p>
+      </div>
+
+      <div class="card">
+        <h3>Objetivo principal</h3>
+        <div class="choice-grid" id="pObjetivo"></div>
+      </div>
+
+      <div class="card">
+        <h3>🚦 Semáforo de lesiones</h3>
+        <p class="hint">Excluimos ejercicios de impacto o riesgo para estas zonas y los sustituimos por variantes seguras.</p>
+        <div class="chips" id="pLesiones"></div>
+        <p class="hint warn">⚠️ MiFitApp no sustituye a un profesional de la salud. Si tienes dolor agudo, consulta a tu médico.</p>
+      </div>
+
+      <div class="card">
+        <h3>🧑‍🏫 Entrenador y sesión</h3>
+        <p class="label">Avatar del entrenador</p>
+        <div class="seg" id="sGenero">
+          <button data-v="m">🙋‍♂️ Masculino</button>
+          <button data-v="f">🙋‍♀️ Femenino</button>
+        </div>
+        <label class="switch-row"><span>🔊 Voz guía en español</span><input type="checkbox" id="sVoz" class="switch"></label>
+        <label class="switch-row"><span>📳 Vibración</span><input type="checkbox" id="sVibra" class="switch"></label>
+        <label class="switch-row"><span>🔔 Pitidos</span><input type="checkbox" id="sBeep" class="switch"></label>
+        <button class="btn btn-ghost" id="btnProbarVoz">▶️ Probar voz</button>
+      </div>
+
+      <div class="card">
+        <h3>✨ Inteligencia Artificial (opcional)</h3>
+        <p class="hint">Pega tu API Key gratuita de <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a> para generar rutinas con Gemini 2.5 Flash. Se guarda solo en este dispositivo.</p>
+        <div class="input-group">
+          <input type="password" id="sApiKey" placeholder="AIza..." autocomplete="off" spellcheck="false">
+          <button class="icon-btn" id="btnVerKey" aria-label="Mostrar u ocultar clave">👁️</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="btnProbarKey">🔌 Probar conexión</button>
+          <button class="btn btn-ghost" id="btnBorrarKey">🗑️ Quitar clave</button>
+        </div>
+        <p class="hint" id="keyStatus"></p>
+      </div>
+
+      <div class="card">
+        <h3>🎨 Apariencia</h3>
+        <div class="seg" id="sTema">
+          <button data-v="light">☀️ Claro</button>
+          <button data-v="dark">🌙 Oscuro</button>
+          <button data-v="auto">🌓 Automático</button>
+        </div>
+      </div>
+
+      <div class="card" id="cardRespaldo">
+        <h3>💾 Datos y respaldo</h3>
+        <p class="hint">Todo vive en tu teléfono. Exporta un respaldo para no perder tu progreso.</p>
+        <p class="hint" id="lastBackupInfo"></p>
+        <div class="btn-col">
+          <button class="btn btn-primary" id="btnExportar">⬇️ Descargar respaldo</button>
+          <button class="btn btn-secondary" id="btnCompartir">📤 Compartir (WhatsApp / Drive)</button>
+          <label class="btn btn-ghost file-btn">📂 Restaurar desde archivo<input type="file" id="fileImport" accept="application/json,.json" hidden></label>
+        </div>
+        <details class="mirror">
+          <summary>🪞 Copias espejo automáticas (últimos 7 días)</summary>
+          <div id="mirrorList" class="mirror-list"></div>
+        </details>
+        <button class="btn btn-danger-ghost" id="btnReset">🧨 Borrar todos mis datos</button>
+      </div>
+      <p class="version" id="appVersion"></p>
+    </section>
+
+    <!-- ===================== PESTAÑA 2: GIMNASIO ===================== -->
+    <section class="tab" id="tab-gimnasio" data-tab="gimnasio" hidden>
+      <h2 class="tab-title">🏠 Mi Gimnasio</h2>
+      <p class="hint">Marca exactamente lo que tienes. La rutina usará solo ese equipo.</p>
+      <div class="travel-cta">
+        <button class="btn btn-accent btn-lg" id="btnViaje">🧳 Modo Viaje · Hoy solo tengo…</button>
+        <p class="hint" id="travelInfo"></p>
+      </div>
+      <div id="equipoLista"></div>
+      <div class="sticky-summary" id="equipoResumen"></div>
+    </section>
+
+    <!-- ===================== PESTAÑA 3: RUTINA ===================== -->
+    <section class="tab" id="tab-rutina" data-tab="rutina" hidden>
+      <h2 class="tab-title">📋 Mi Rutina</h2>
+      <div class="card hero-card">
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow" id="rDiaNum">Sesión 1</p>
+            <h3 id="rDiaNombre">Cuerpo completo</h3>
+            <p class="hint" id="rMeta"></p>
+          </div>
+          <span class="badge" id="rFuente">Offline</span>
+        </div>
+        <p class="label">Duración deseada</p>
+        <div class="seg seg-num" id="rDuracion">
+          <button data-v="15">15′</button><button data-v="30">30′</button><button data-v="45">45′</button><button data-v="60">60′</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="btnRegenerar">🔄 Nueva rutina</button>
+          <button class="btn btn-ai" id="btnIA" hidden>✨ Con IA</button>
+        </div>
+        <button class="btn btn-primary btn-xl" id="btnEmpezar">▶️ Empezar entrenamiento</button>
+      </div>
+      <div id="travelBanner" class="notice" hidden></div>
+      <div id="iaExplicacion" class="notice ai" hidden></div>
+      <div id="rutinaLista"></div>
+    </section>
+
+    <!-- ===================== PESTAÑA 4: ENTRENADOR ===================== -->
+    <section class="tab" id="tab-entrenador" data-tab="entrenador" hidden>
+      <!-- Vista previa (sin sesión activa) -->
+      <div id="coachIdle">
+        <h2 class="tab-title">🧑‍🏫 Entrenador en Vivo</h2>
+        <div class="card coach-preview">
+          <div class="avatar-box" id="avatarIdle"></div>
+          <div class="seg" id="sGenero2">
+            <button data-v="m">🙋‍♂️ Él</button>
+            <button data-v="f">🙋‍♀️ Ella</button>
+          </div>
+          <p class="hint center" id="coachIdleInfo"></p>
+          <button class="btn btn-primary btn-xl" id="btnIniciarCoach">▶️ Iniciar rutina de hoy</button>
+          <p class="hint center">La pantalla se mantendrá encendida mientras entrenas.</p>
+        </div>
+      </div>
+
+      <!-- Reproductor (sesión activa, pantalla completa dividida) -->
+      <div id="player" class="player" hidden data-phase="prep">
+        <div class="player-top">
+          <button class="icon-btn" id="plClose" aria-label="Salir del entrenamiento">✕</button>
+          <div class="pl-progress"><div id="plProgressBar"></div></div>
+          <div class="pl-clock" aria-label="Tiempo total"><span>⏱</span> <b id="plTotal">00:00</b></div>
+          <button class="icon-btn" id="plVoice" aria-label="Activar o silenciar voz">🔊</button>
+        </div>
+
+        <!-- Mitad superior: avatar -->
+        <div class="pl-stage">
+          <div class="pl-info">
+            <p class="pl-block" id="plBlock">Calentamiento</p>
+            <h2 id="plName">Prepárate</h2>
+            <p class="pl-set" id="plSet"></p>
+          </div>
+          <div class="avatar-box pl-avatar" id="avatarLive"></div>
+          <div class="pl-tip">
+            <p id="plMuscles"></p>
+            <p id="plTip"></p>
+          </div>
+        </div>
+
+        <!-- Mitad inferior: cronómetro + controles -->
+        <div class="pl-panel">
+          <div class="pl-timer-row">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 120 120" class="ring" aria-hidden="true">
+                <circle cx="60" cy="60" r="52" class="ring-bg"/>
+                <circle cx="60" cy="60" r="52" class="ring-fg" id="plRing"/>
+              </svg>
+              <div class="ring-center">
+                <div class="ring-num" id="plTime">00:05</div>
+                <div class="ring-label" id="plLabel">Prepárate</div>
+              </div>
+            </div>
+            <div class="pl-side">
+              <div class="next-card" id="plNext" hidden>
+                <p class="eyebrow">Siguiente</p>
+                <p class="next-name" id="plNextName"></p>
+                <p class="hint" id="plNextMeta"></p>
+              </div>
+              <div class="rpe" id="plRpe" hidden>
+                <p class="eyebrow">¿Cómo se sintió <span id="plRpeName"></span>?</p>
+                <div class="rpe-btns">
+                  <button data-rpe="facil">😌 Fácil</button>
+                  <button data-rpe="justo">👌 Justo</button>
+                  <button data-rpe="pesado">🥵 Muy pesado</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pl-actions">
+            <button class="btn btn-done" id="plDone" hidden>✅ Serie completada</button>
+            <div class="rest-ctrl" id="plRestCtrl" hidden>
+              <button class="btn btn-ghost" id="plMinus">−15s</button>
+              <button class="btn btn-ghost" id="plPlus">+15s</button>
+              <button class="btn btn-rest" id="plSkip">Saltar descanso ⏭</button>
+            </div>
+          </div>
+          <div class="pl-controls">
+            <button class="ctrl" id="plPrev" aria-label="Anterior">⏮</button>
+            <button class="ctrl ctrl-main" id="plPause" aria-label="Pausar">⏸</button>
+            <button class="ctrl" id="plNextBtn" aria-label="Siguiente">⏭</button>
+          </div>
+        </div>
+
+        <!-- Diálogo de salida -->
+        <div class="pl-exit" id="plExit" hidden>
+          <div class="pl-exit-card">
+            <h3>¿Terminar el entrenamiento?</h3>
+            <p class="hint">Puedes guardar lo que llevas o seguir entrenando.</p>
+            <button class="btn btn-primary btn-lg" id="plExitContinue">💪 Seguir entrenando</button>
+            <button class="btn btn-secondary btn-lg" id="plExitSave">💾 Terminar y guardar</button>
+            <button class="btn btn-danger-ghost" id="plExitDiscard">Salir sin guardar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PESTAÑA 5: PROGRESO ===================== -->
+    <section class="tab" id="tab-progreso" data-tab="progreso" hidden>
+      <h2 class="tab-title">📈 Progreso</h2>
+      <div class="kpis" id="kpis"></div>
+
+      <div class="card">
+        <div class="card-head">
+          <button class="icon-btn" id="calPrev" aria-label="Mes anterior">‹</button>
+          <h3 id="calTitle">Mes</h3>
+          <button class="icon-btn" id="calNext" aria-label="Mes siguiente">›</button>
+        </div>
+        <div class="calendar" id="calendar"></div>
+      </div>
+
+      <div class="card">
+        <h3>📏 Peso y medidas</h3>
+        <div class="grid-2">
+          <label class="field"><span>Fecha</span><input type="date" id="mFecha"></label>
+          <label class="field"><span>Peso (kg)</span><input type="number" inputmode="decimal" step="0.1" id="mPeso"></label>
+          <label class="field"><span>Cintura (cm)</span><input type="number" inputmode="decimal" step="0.1" id="mCintura"></label>
+          <label class="field"><span>Cadera (cm)</span><input type="number" inputmode="decimal" step="0.1" id="mCadera"></label>
+          <label class="field"><span>Brazo (cm)</span><input type="number" inputmode="decimal" step="0.1" id="mBrazo"></label>
+          <label class="field"><span>Muslo (cm)</span><input type="number" inputmode="decimal" step="0.1" id="mMuslo"></label>
+        </div>
+        <button class="btn btn-primary" id="btnGuardarMedida">💾 Guardar medidas</button>
+        <div class="seg seg-sm" id="chartMetric">
+          <button data-v="peso">Peso</button><button data-v="cintura">Cintura</button><button data-v="cadera">Cadera</button><button data-v="brazo">Brazo</button><button data-v="muslo">Muslo</button>
+        </div>
+        <div id="chart" class="chart"></div>
+        <div class="chart" id="chartKcal"></div>
+      </div>
+
+      <div class="card">
+        <h3>🗓️ Historial</h3>
+        <div id="historial" class="history"></div>
+      </div>
+
+      <div class="card">
+        <h3>📘 Manual interactivo</h3>
+        <button class="btn btn-secondary" id="btnTour2">🧭 Iniciar tour guiado (7 pasos)</button>
+        <div id="faq" class="faq"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Navegación inferior ===== -->
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    <button data-nav="perfil"><span class="ni">👤</span><span class="nl">Perfil</span></button>
+    <button data-nav="gimnasio"><span class="ni">🏠</span><span class="nl">Gimnasio</span></button>
+    <button data-nav="rutina"><span class="ni">📋</span><span class="nl">Rutina</span></button>
+    <button data-nav="entrenador"><span class="ni">🧑‍🏫</span><span class="nl">Entrenar</span></button>
+    <button data-nav="progreso"><span class="ni">📈</span><span class="nl">Progreso</span></button>
+  </nav>
+
+  <!-- ===== Modal genérico ===== -->
+  <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modalTitle"></h3>
+        <button class="icon-btn" id="modalClose" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== Tour guiado ===== -->
+  <div class="tour" id="tour" hidden>
+    <div class="tour-spot" id="tourSpot"></div>
+    <div class="tour-card" id="tourCard">
+      <p class="eyebrow" id="tourStep"></p>
+      <h3 id="tourTitle"></h3>
+      <p id="tourText"></p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="tourPrev">Anterior</button>
+        <button class="btn btn-primary" id="tourNext">Siguiente</button>
+      </div>
+      <button class="link-btn" id="tourSkip">Saltar tour</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/ejercicios.js"></script>
+  <script src="js/avatar.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
