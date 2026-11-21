@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.0.0'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.0.1'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -544,7 +544,7 @@ Usa "reps" o "segundos" (el otro en null).`;
   function releaseScreen() { try { if (wakeLock) wakeLock.release(); } catch (e) { /* */ } wakeLock = null; }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && P.active) lockScreen();
-    if (liveAvatar) liveAvatar.pause(document.hidden);
+    if (liveAvatar) liveAvatar.pause(document.hidden || !!(P.active && P.paused));
   });
 
   // ---------- Reproductor ----------
@@ -609,6 +609,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       $('#plMuscles').textContent = '🎯 ' + e.m;
       $('#plTip').textContent = '✅ ' + (it.nota || e.tip);
       liveAvatar.set({ anim: e.a, gender: S.settings.genero, props: propsFor(e.eq) });
+      liveAvatar.start(); liveAvatar.ensure(); // arranque explícito del bucle al empezar la serie
       if (st.mode === 'reps') {
         $('#plDone').hidden = false;
         $('#plLabel').textContent = `${st.reps} reps`;
@@ -664,6 +665,7 @@ Usa "reps" o "segundos" (el otro en null).`;
   function tick() {
     const now = performance.now(); const dt = Math.min(now - P.last, 2000); P.last = now;
     if (!P.active || P.paused) return;
+    if (liveAvatar) liveAvatar.ensure(); // red de seguridad: reanima si el bucle se detuvo
     P.sessionMs += dt; P.phaseMs += dt;
     const st = curStep();
     if (st.type === 'work') P.workMs += dt;

@@ -18,6 +18,7 @@
   'use strict';
 
   const W = 200, H = 260, GROUND = 246, BAR_Y = 34;
+  const FALLBACK_ANIM = 'march'; // se usa si un ejercicio no tiene pose definida
   const L = { T: 62, NECK: 8, R: 13, UA: 33, FA: 30, TH: 44, SH: 42, FT: 11 };
   const KEYS = ['t', 'hd', 'sL', 'eL', 'sR', 'eR', 'hL', 'kL', 'hR', 'kR', 'j'];
 
@@ -332,7 +333,7 @@
       if (gender) this.gender = gender;
       if (props) this.props = props;
       if (speed) this.speed = speed;
-      if (anim && ANIMS[anim]) this.animKey = anim; else if (anim) this.animKey = 'breathe';
+      if (anim && ANIMS[anim]) this.animKey = anim; else if (anim) this.animKey = FALLBACK_ANIM; // sin pose propia: animación dinámica por defecto
       this.el.classList.toggle('fem', this.gender === 'f');
       this._prepare();
       this.t0 = performance.now();
@@ -362,7 +363,8 @@
       const a = ANIMS[this.animKey];
       const n = a.kf.length;
       const dur = a.dur / this.speed;
-      const ph = ((time % dur) / dur) * n;
+      const tt = ((time % dur) + dur) % dur; // nunca negativo (evita kf[-1])
+      const ph = (tt / dur) * n;
       const i = Math.floor(ph) % n, u = ph - Math.floor(ph);
       const e = (1 - Math.cos(Math.PI * u)) / 2;
       const p = lerpPose(a.kf[i], a.kf[(i + 1) % n], e);
@@ -382,14 +384,30 @@
       b += drawProps(J, props, a, ctx);
       this.svgBody.innerHTML = b;
     }
-    _loop(now) {
-      if (!this.paused) this._render(now - this.t0);
+    _loop() {
+      // Reprograma SIEMPRE primero: una excepción de dibujo no debe matar el bucle.
       this.raf = requestAnimationFrame(this._loop);
+      const now = performance.now();
+      this.lastFrame = now;
+      if (this.paused) return;
+      try { this._render(Math.max(0, now - this.t0)); } catch (e) { /* se reintenta en el siguiente frame */ }
     }
     renderAt(frac) { const a = ANIMS[this.animKey]; this._render((a.dur / this.speed) * frac); }
-    start() { if (!this.raf) this.raf = requestAnimationFrame(this._loop); }
+    start() {
+      this.paused = false; this.lastFrame = performance.now();
+      if (!this.raf) this.raf = requestAnimationFrame(this._loop);
+    }
     stop() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = null; }
-    pause(v = true) { this.paused = v; }
+    pause(v = true) { this.paused = v; if (!v) this.ensure(); }
+    // Vigilante: si el navegador dejó de llamar al bucle, lo reinicia y dibuja ya.
+    ensure() {
+      if (this.paused) return;
+      if (!this.raf || performance.now() - (this.lastFrame || 0) > 400) {
+        if (this.raf) cancelAnimationFrame(this.raf);
+        this.raf = null; this.start();
+        try { this._render(Math.max(0, performance.now() - this.t0)); } catch (e) { /* */ }
+      }
+    }
     destroy() { this.stop(); this.el.innerHTML = ''; }
   }
 

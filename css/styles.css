@@ -432,5 +432,10 @@ body.training .toast { bottom: 24px; }
 /* Avatar femenino */
 .fem { --av-shirt: #e11d74; --av-shirt-d: #a3104f; --av-hair: #4a2511; --av-shorts: #312e81; --av-shorts-d: #1e1b4b; }
 
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+/* Ahorro de animaciones del sistema: se reduce la UI, pero el entrenador SIEMPRE se anima
+   (la animación del avatar corre por JavaScript y es el contenido principal del entrenamiento). */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.avatar-svg):not(.avatar-svg *) { animation: none !important; transition: none !important; }
+  .avatar-svg, .avatar-svg * { animation: revert !important; transition: revert !important; }
+}
 @media (min-width: 600px) { .choice-grid { grid-template-columns: 1fr 1fr; } .eq-grid { grid-template-columns: repeat(3, 1fr); } .kpis { grid-template-columns: repeat(4, 1fr); } }
