@@ -102,7 +102,8 @@
     woodchop: { dur: 1800, band: 'top', kf: [{ sL: 150, sR: 150, t: -6 }, { t: 35, hL: 30, hR: 30, kL: 40, kR: 40, sL: 30, sR: 30 }] },
     rollout: { dur: 2800, kf: [{ t: 40, hL: 0, hR: 0, kL: 90, kR: 90, sL: 55, sR: 55 }, { t: 78, hL: -62, hR: -62, kL: 28, kR: 28, sL: 150, sR: 150 }] },
     calf: { dur: 1600, kf: [{ sL: 5, sR: 5 }, { sL: 5, sR: 5, j: 8 }] },
-    stretchquad: { dur: 4000, kf: [{ hL: -5, kL: 165, sL: -30, eL: -20, sR: 80 }, { hL: -8, kL: 165, sL: -32, eL: -20, sR: 85, hd: 4 }] },
+    // La mano de la pierna flexionada (R, la más cercana a la cámara) sujeta el empeine/tobillo detrás del glúteo (cinemática inversa calculada para cada fotograma)
+    stretchquad: { dur: 4000, kf: [{ t: -4, hR: -5, kR: 165, sR: -24.2, eR: 29.1, sL: 80 }, { t: -4, hR: -8, kR: 165, sR: -26.8, eR: 34.1, sL: 85, hd: 4 }] },
     stretchham: { dur: 4000, kf: [{ t: 50, hL: 90, hR: 90, sL: 95, sR: 95 }, { t: 62, hL: 90, hR: 90, sL: 100, sR: 100 }] },
     stretcharm: { view: 'f', dur: 4000, kf: [{ sR: -80, sL: 40, eL: -110 }, { sR: -84, sL: 42, eL: -112, hd: 4 }] },
     stretchtri: { dur: 4000, kf: [{ sR: 170, eR: 170, sL: 160, eL: 110 }, { sR: 172, eR: 170, sL: 162, eL: 112, hd: -4 }] },
@@ -111,7 +112,12 @@
     child: { dur: 4500, kf: [{ t: 112, hL: 80, hR: 80, kL: 170, kR: 170, sL: 98, sR: 98 }, { t: 108, hL: 80, hR: 80, kL: 170, kR: 170, sL: 98, sR: 98 }] },
     // Superman: decúbito prono. Pelvis y abdomen apoyados; brazos y piernas extendidos que se elevan en arco.
     superman: { dur: 3600, pf: true, anchor: 'pelvis', vb: [-22, -26, 244, 317], kf: [{ t: 90, hd: 14, sL: 98, sR: 98, eL: 0, eR: 0, hL: -92, hR: -92, kL: 0, kR: 0 }, { t: 76, hd: 8, sL: 112, sR: 112, eL: 0, eR: 0, hL: -112, hR: -112, kL: 0, kR: 0 }] },
-    cobra: { dur: 4000, kf: [{ t: 65, hL: -90, hR: -90, sL: 20, eL: 20, sR: 20, eR: 20 }, { t: 50, hL: -90, hR: -90, sL: 0, sR: 0, hd: -10 }] },
+    // Cobra suave (esfinge): pelvis, abdomen y piernas apoyados en el piso; solo el pecho se eleva, con los antebrazos en el suelo.
+    cobra: { dur: 4000, pf: true, anchor: 'pelvis', vb: [-14, -14, 228, 296], kf: [{ t: 80, hd: 0, sL: 53, eL: 37, sR: 53, eR: 37, hL: -91, hR: -91, kL: 0, kR: 0 }, { t: 64, hd: -8, sL: 0, eL: 90, sR: 0, eR: 90, hL: -91, hR: -91, kL: 0, kR: 0 }] },
+    // Y-T-W boca abajo: decúbito prono, torso apenas elevado y brazos extendidos que dibujan Y (arriba), T (a la altura de los hombros) y W (codos flexionados).
+    ytw: { dur: 5400, pf: true, anchor: 'pelvis', vb: [-22, -26, 244, 317], kf: [{ t: 78, hd: 10, sL: 135, sR: 135, eL: 0, eR: 0, hL: -91, hR: -91, kL: 0, kR: 0 }, { t: 78, hd: 10, sL: 100, sR: 100, eL: -12, eR: -12, hL: -91, hR: -91, kL: 0, kR: 0 }, { t: 78, hd: 10, sL: 112, sR: 112, eL: 95, eR: 95, hL: -91, hR: -91, kL: 0, kR: 0 }] },
+    // Jalón isométrico con toalla: de frente, manos separadas tensando la toalla desde arriba hasta el pecho
+    towelpull: { view: 'f', dur: 2400, towel: true, kf: [{ sL: 165, sR: 165 }, { sL: 22, eL: 118, sR: 22, eR: 118, hd: 2 }] },
     kneehug: { dur: 3600, kf: [{ t: 270, hL: 165, hR: 165, kL: 150, kR: 150, sL: 140, sR: 140, eL: 30, eR: 30 }, { t: 272, hL: 172, hR: 172, kL: 150, kR: 150, sL: 145, sR: 145, eL: 30, eR: 30 }] },
     dislocate: { view: 'f', dur: 3000, bandHands: true, kf: [{ sL: 30, sR: 30 }, { sL: 178, sR: 178 }] },
     pullapart: { view: 'f', dur: 2000, bandHands: true, kf: [{ sL: 80, eL: -70, sR: 80, eR: -70 }, { sL: 90, sR: 90 }] },
@@ -999,6 +1005,13 @@
   function drawProps(J, props, anim, ctx) {
     let s = '';
     const W1 = J.WL, W2 = J.WR, hm = mid(W1, W2);
+    if (anim.towel) {            // toalla tensada entre ambas manos (se dibuja sobre las manos: queda sujeta)
+      const dx = W2[0] - W1[0], dy = W2[1] - W1[1], n = Math.hypot(dx, dy) || 1, ux = dx / n, uy = dy / n, nx = -uy, ny = ux;
+      const a = [W1[0] - ux * 9, W1[1] - uy * 9], b = [W2[0] + ux * 9, W2[1] + uy * 9];
+      s += segc(a, b, 8.4, '#64748b') + segc(a, b, 6.4, '#f1f5f9');
+      for (let k = 1; k < 7; k++) { const t = k / 7, c = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; s += segc([c[0] + nx * 2.7, c[1] + ny * 2.7], [c[0] - nx * 2.7, c[1] - ny * 2.7], .7, '#94a3b8'); }
+      s += segc([W1[0] - ux * 2 + nx * 4.4, W1[1] - uy * 2 + ny * 4.4], [W1[0] - ux * 2 - nx * 4.4, W1[1] - uy * 2 - ny * 4.4], 1.6, '#475569') + segc([W2[0] + ux * 2 + nx * 4.4, W2[1] + uy * 2 + ny * 4.4], [W2[0] + ux * 2 - nx * 4.4, W2[1] + uy * 2 - ny * 4.4], 1.6, '#475569');
+    }
     for (const pr of props) {
       switch (pr) {
         case 'dumbbell':

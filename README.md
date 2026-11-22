@@ -114,6 +114,14 @@ Multiplicador por RPE: Fácil ×0.90 · Justo ×1.00 · Muy pesado ×1.15. El re
 - **Fibras y volumen:** fibras orientadas por grupo (largas, abanico en pectoral, oblicuas en deltoides/glúteos/oblicuos/dorsales) que se encienden en carmesí con un brillo `feGaussianBlur` al acercarse al Punto Máximo (B); oclusión en pliegues de rodilla y cadera, penumbra con dirección de luz y sombra de piso dinámica según el ancho y la elevación del cuerpo.
 - Los otros 12 avatares no cambian (verificado con huellas SHA-256), salvo las dos posturas anteriores. Se mantiene el límite de ~30 fps y el modo ligero.
 
+## 🧘 Posturas corregidas (v1.5.3)
+
+- **Y-T-W boca abajo** (anim `ytw`): decúbito prono con el abdomen y las piernas en el piso, torso apenas elevado y brazos que dibujan Y, T y W en el aire.
+- **Cobra suave** (`cobra`): pelvis y piernas apoyadas en el piso; solo el pecho se eleva, con los antebrazos apoyados (esfinge).
+- **Jalón isométrico con toalla** (`towelpull`, de frente): se dibuja la toalla tensada entre ambas manos, de arriba hacia el pecho.
+- **Estiramiento de cuádriceps de pie** (`stretchquad`): la mano del lado de la pierna flexionada sujeta el empeine/tobillo (posiciones calculadas con cinemática inversa).
+- Solo cambian esas animaciones; `pulldown` (ligas/banda), los demás ejercicios y el estilo de los avatares siguen igual. Datos de usuario intactos.
+
 ## 🔍 Catálogo de Ejercicios (visor)
 
 En **Perfil** (y en **Progreso → Manual**) está el botón **🔍 Catálogo de Ejercicios (140)**. Abre una vista de pantalla completa para inspeccionar cualquier ejercicio sin esperar a que salga en una rutina:

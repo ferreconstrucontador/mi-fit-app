@@ -151,7 +151,7 @@
     { id: 'elev_frontales', n: 'Elevaciones frontales con mancuernas', g: 'Hombros', p: 'empuje_v', eq: ['mancuernas'], lv: 1, ci: ['hombros'], t: 'r', b: 12, a: 'frontraise', met: 3.5, m: 'Deltoides anterior', tip: 'Sube a la altura de los ojos y baja lento.', f: 'p' },
 
     // ===== Tirón horizontal =====
-    { id: 'ytw', n: 'Y-T-W boca abajo', g: 'Espalda', p: 'tiron_h', eq: [], lv: 1, ci: [], t: 'r', b: 10, a: 'cobra', met: 3, m: 'Espalda alta, deltoide posterior', tip: 'Frente cerca del piso; dibuja Y, T y W con los brazos.', f: 'p' },
+    { id: 'ytw', n: 'Y-T-W boca abajo', g: 'Espalda', p: 'tiron_h', eq: [], lv: 1, ci: [], t: 'r', b: 10, a: 'ytw', met: 3, m: 'Espalda alta, deltoide posterior', tip: 'Frente cerca del piso; dibuja Y, T y W con los brazos.', f: 'p' },
     { id: 'superman', n: 'Superman', g: 'Espalda', p: 'tiron_h', eq: [], lv: 1, ci: ['espalda'], t: 'r', b: 12, a: 'superman', met: 3.5, m: 'Erectores, glúteos', tip: 'Eleva brazos y piernas a la vez, mirada al piso.', f: 'p' },
     { id: 'remo_liga', n: 'Remo con liga', g: 'Espalda', p: 'tiron_h', eq: ['liga_tubular'], lv: 1, ci: [], t: 'r', b: 15, a: 'bandrow', met: 4, m: 'Dorsales, romboides, bíceps', tip: 'Jala los codos atrás y junta escápulas.', f: 'p' },
     { id: 'face_pull_liga', n: 'Face pull con liga', g: 'Espalda', p: 'tiron_h', eq: ['liga_tubular'], lv: 1, ci: [], t: 'r', b: 15, a: 'bandrow', met: 3.5, m: 'Deltoide posterior, manguito', tip: 'Jala hacia la cara abriendo los codos.', f: 'p' },
@@ -165,7 +165,7 @@
     { id: 'pajaro_mancuernas', n: 'Pájaros con mancuernas', g: 'Espalda', p: 'tiron_h', eq: ['mancuernas'], lv: 2, ci: ['espalda'], t: 'r', b: 12, a: 'row', met: 3.5, m: 'Deltoide posterior', tip: 'Abre los brazos como alas sin subir los hombros.', f: 'p' },
 
     // ===== Tirón vertical =====
-    { id: 'jalon_toalla', n: 'Jalón isométrico con toalla', g: 'Espalda', p: 'tiron_v', eq: [], lv: 1, ci: [], t: 's', b: 30, a: 'pulldown', met: 3, m: 'Dorsales', tip: 'Estira una toalla hacia afuera mientras bajas los codos.', f: 'p' },
+    { id: 'jalon_toalla', n: 'Jalón isométrico con toalla', g: 'Espalda', p: 'tiron_v', eq: [], lv: 1, ci: [], t: 's', b: 30, a: 'towelpull', met: 3, m: 'Dorsales', tip: 'Estira una toalla hacia afuera mientras bajas los codos.', f: 'p' },
     { id: 'jalon_liga', n: 'Jalón al pecho con liga', g: 'Espalda', p: 'tiron_v', eq: ['liga_tubular'], lv: 1, ci: [], t: 'r', b: 15, a: 'pulldown', met: 4, m: 'Dorsales, bíceps', tip: 'Liga anclada arriba; codos hacia las costillas.', f: 'p' },
     { id: 'jalon_banda_larga', n: 'Jalón con banda larga', g: 'Espalda', p: 'tiron_v', eq: ['banda_larga'], lv: 1, ci: [], t: 'r', b: 15, a: 'pulldown', met: 4, m: 'Dorsales', tip: 'Pecho arriba, jala hasta la barbilla.', f: 'p' },
     { id: 'colgarse_barra', n: 'Colgarse de la barra', g: 'Espalda', p: 'tiron_v', eq: ['barra_dom'], lv: 1, ci: ['hombros'], t: 's', b: 20, a: 'deadhang', met: 3, m: 'Agarre, dorsales', tip: 'Hombros activos, no te dejes caer.', f: 'p' },
