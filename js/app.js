@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.3.1'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.4.0'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -179,6 +179,7 @@
     if (name === 'modal') closeModalUI();
     else if (name === 'tour') endTourUI();
     else if (name === 'player') closePlayerUI();
+    else if (name === 'catalog') closeCatalogUI();
   }
 
   // ---------- Modal ----------
@@ -1167,6 +1168,118 @@ Usa "reps" o "segundos" (el otro en null).`;
   }
 
   // =========================================================================
+  //  CATÁLOGO / VISOR DE EJERCICIOS
+  //  Vista de solo consulta: no escribe nada en localStorage ni en IndexedDB. El avatar que se
+  //  elige aquí es temporal (no cambia tu entrenador guardado).
+  // =========================================================================
+  const CAT = { avatar: null, sel: null, mode: 'move', guide: true, list: [], char: 'anat_m', ready: false };
+  const normTxt = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const eqTxt = e => (e.eq.length ? e.eq.map(q => DB.EQUIPO_NOMBRE[q]).join(' + ') : 'Peso corporal');
+
+  function catBuildControls() {
+    if (CAT.ready) return;
+    CAT.ready = true;
+    $('#catMus').innerHTML = '<option value="">💪 Todos los músculos</option>' + Object.values(DB.MUSCULOS).map(m => `<option value="${m.id}">${esc(m.n)}</option>`).join('');
+    const eqOpts = DB.EQUIPO.flatMap(c => c.items.filter(i => !i.fixed).map(i => `<option value="${i.id}">${esc(i.n)}</option>`));
+    $('#catEq').innerHTML = '<option value="">🧰 Todo el equipo</option><option value="_none">🧍 Solo peso corporal</option>' + eqOpts.join('');
+    $('#catChar').innerHTML = GROUPS.map(g => `<optgroup label="${g.i} ${g.n}">${CHARS.filter(c => c.g === g.id).map(c => `<option value="${c.id}">${esc(c.n)}</option>`).join('')}</optgroup>`).join('');
+  }
+  function catFilter() {
+    const q = normTxt($('#catQ').value.trim()), mus = $('#catMus').value, eq = $('#catEq').value;
+    return DB.EJERCICIOS.filter(e =>
+      (!q || normTxt(e.n).includes(q)) &&
+      (!mus || e.mus.p.includes(mus) || e.mus.s.includes(mus)) &&
+      (!eq || (eq === '_none' ? !e.eq.length : e.eq.includes(eq))));
+  }
+  function catRenderList() {
+    CAT.list = catFilter();
+    $('#catCount').textContent = `${CAT.list.length} de ${DB.EJERCICIOS.length}`;
+    $('#catList').innerHTML = CAT.list.length
+      ? CAT.list.map(e => `<button class="cat-row ${e.id === CAT.sel ? 'on' : ''}" data-id="${e.id}"><span><b>${esc(e.n)}</b><small>${esc(eqTxt(e))} · 🎯 ${esc(DB.musNombres(e.mus.p).join(', '))}</small></span><span class="cat-lv">${'⭐'.repeat(e.lv)}</span></button>`).join('')
+      : '<p class="cat-empty">Sin resultados. Prueba con otro nombre o quita un filtro.</p>';
+  }
+  function catRefresh() {
+    catRenderList();
+    if (CAT.list.length && !CAT.list.some(e => e.id === CAT.sel)) catSelect(CAT.list[0].id);   // el visor siempre muestra un ejercicio visible en la lista
+  }
+  function catModesUI() {
+    $$('#catModes button').forEach(b => {
+      const m = b.dataset.cm;
+      const on = m === 'guide' ? CAT.guide : CAT.mode === m;
+      b.classList.toggle('on', on); if (m === 'guide') b.setAttribute('aria-pressed', on);
+    });
+  }
+  function catApply() {
+    const e = DB.BY_ID[CAT.sel]; if (!e || !CAT.avatar) return;
+    CAT.avatar.set({ anim: e.a, char: CAT.char, accent: S.settings.acento, props: propsFor(e.eq), muscles: e.mus });
+    CAT.avatar.setGuide(CAT.guide ? e.guia.marks : null);
+    CAT.avatar.showPose(CAT.mode === 'move' ? null : CAT.mode);   // null = movimiento continuo; A / B = pose congelada
+    CAT.avatar.start(); CAT.avatar.ensure();
+  }
+  function catSelect(id) {
+    const e = DB.BY_ID[id]; if (!e) return;
+    CAT.sel = id;
+    $$('#catList .cat-row').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+    $('#catName').textContent = e.n;
+    $('#catMeta').textContent = `${eqTxt(e)} · Nivel ${'⭐'.repeat(e.lv)} · ${e.t === 's' ? 'Por tiempo' : 'Repeticiones'}`;
+    const chips = (arr, cls) => (arr.length ? DB.musNombres(arr).map(n => `<span class="mus-chip ${cls}">${esc(n)}</span>`).join('') : '<span class="mus-lbl">—</span>');
+    const anat = charById(CAT.char).kind === 'anatomy';
+    $('#catMusChips').innerHTML = `<span class="mus-lbl">🔴 Principales</span>${chips(e.mus.p, 'p')}<span class="mus-lbl">🩷 Secundarios</span>${chips(e.mus.s, 's')}`
+      + (anat ? '' : '<span class="cat-note">Los músculos se iluminan en los avatares anatómicos. <button id="catGoAnat">🫀 Ver en Anatómico</button></span>');
+    const g = e.guia;
+    $('#catTech').innerHTML = `<div class="tech-row"><span class="tech-n">1</span><div><b>Posición inicial</b><p>${esc(g.ini)}</p></div></div>`
+      + `<div class="tech-row"><span class="tech-n">2</span><div><b>Ejecución</b><p>${esc(g.eje)}</p></div></div>`
+      + `<div class="tech-row err"><span class="tech-n">!</span><div><b>Error común a evitar</b><p>${esc(g.err)}</p></div></div>`;
+    catApply();
+  }
+  function catStep(d) {
+    if (!CAT.list.length) return;
+    const i = CAT.list.findIndex(e => e.id === CAT.sel);
+    catSelect(CAT.list[(i < 0 ? 0 : i + d + CAT.list.length) % CAT.list.length].id);
+    vibrate(10);
+  }
+  function openCatalog() {
+    if (!$('#catalog').hidden) return;
+    catBuildControls();
+    const cur = charById(S.settings.personaje);
+    CAT.char = cur.kind === 'anatomy' ? cur.id : 'anat_m';     // por defecto un anatómico, para ver los músculos
+    $('#catChar').value = CAT.char;
+    $('#catQ').value = ''; $('#catMus').value = ''; $('#catEq').value = '';
+    CAT.mode = 'move'; CAT.guide = true; catModesUI();
+    $('#catalog').hidden = false; pushOverlay('catalog');
+    $('#catalog .cat-scroll').scrollTop = 0;
+    if (!CAT.avatar) CAT.avatar = new Avatar($('#catAvatar'), { char: CAT.char, accent: S.settings.acento });
+    catRenderList();
+    catSelect(CAT.sel && DB.BY_ID[CAT.sel] ? CAT.sel : DB.EJERCICIOS[0].id);
+  }
+  function closeCatalogUI() {
+    $('#catalog').hidden = true;
+    if (CAT.avatar) { CAT.avatar.destroy(); CAT.avatar = null; }
+  }
+  function bindCatalog() {
+    const n = DB.EJERCICIOS.length;
+    $('#btnCatalogo').textContent = `🔍 Catálogo de Ejercicios (${n})`; $('#btnCatalogo2').textContent = `🔍 Catálogo de Ejercicios (${n})`;
+    $('#btnCatalogo').addEventListener('click', openCatalog);
+    $('#btnCatalogo2').addEventListener('click', openCatalog);
+    $('#catClose').addEventListener('click', () => { if (overlays[overlays.length - 1] === 'catalog') popOverlayUI(); });
+    $('#catQ').addEventListener('input', debounce(catRefresh, 150));
+    $('#catMus').addEventListener('change', catRefresh);
+    $('#catEq').addEventListener('change', catRefresh);
+    $('#catChar').addEventListener('change', e => { CAT.char = e.target.value; catSelect(CAT.sel); });
+    $('#catList').addEventListener('click', e => { const r = e.target.closest('.cat-row'); if (r) catSelect(r.dataset.id); });
+    $('#catPrev').addEventListener('click', () => catStep(-1));
+    $('#catNext').addEventListener('click', () => catStep(1));
+    $('#catMusChips').addEventListener('click', e => { if (e.target.closest('#catGoAnat')) { CAT.char = 'anat_m'; $('#catChar').value = 'anat_m'; catSelect(CAT.sel); } });
+    $('#catModes').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const m = b.dataset.cm;
+      if (m === 'guide') CAT.guide = !CAT.guide;
+      else CAT.mode = (CAT.mode === m && m !== 'move') ? 'move' : m;      // tocar A/B otra vez vuelve al movimiento
+      catModesUI(); catApply(); vibrate(10);
+    });
+  }
+
+  // =========================================================================
   //  TOUR GUIADO (7 pasos) Y PREGUNTAS FRECUENTES
   // =========================================================================
   const TOUR = [
@@ -1230,6 +1343,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     ['¿Qué es la preparación de 10 segundos?', 'Antes de cada ejercicio ves la pose inicial con puntos luminosos en las articulaciones a cuidar y flechas de movimiento. Alterna A (pose inicial) y B (punto máximo): en B la cuenta se pausa. Toca “Empezar ya” para saltarla o “🧍 Postura inicial” para consultarla en cualquier momento.'],
     ['¿Qué significan los músculos rojos?', 'Con los entrenadores anatómicos, el rojo intenso con pulso marca los músculos principales del ejercicio y el rojo suave los secundarios.'],
     ['¿Qué es la Vista Enfoque?', 'Toca 🎯 en el entrenamiento: fondo de estudio oscuro, series × repeticiones (o el tiempo) en grande y el avatar a gran tamaño. Tu elección se recuerda.'],
+    ['¿Cómo veo un ejercicio sin esperar a la rutina?', 'En Perfil (o en Progreso → Manual) abre “🔍 Catálogo de Ejercicios”: busca por nombre, filtra por músculo o equipo, elige el avatar (prueba los anatómicos) y alterna Movimiento, Pose inicial (A) y Punto máximo (B). Es solo de consulta: no modifica tus datos.'],
     ['¿Cómo se calculan las calorías?', 'Con valores MET de cada ejercicio × tu peso × tiempo real de trabajo, más el gasto en los descansos. Es una estimación.']
   ];
   function renderFAQ() { $('#faq').innerHTML = FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join(''); }
@@ -1286,7 +1400,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#appVersion').textContent = `MiFitApp v${APP_VERSION} · Hecho para entrenar sin excusas`;
     await IDB.open();
     await loadData();
-    bindPerfil(); bindGimnasio(); bindRutina(); bindPlayer(); bindProgreso(); bindTour(); bindMirrors(); renderFAQ();
+    bindPerfil(); bindGimnasio(); bindRutina(); bindPlayer(); bindProgreso(); bindTour(); bindMirrors(); bindCatalog(); renderFAQ();
     $$('.bottom-nav button').forEach(b => b.addEventListener('click', () => { if (overlays.length) return; goTab(b.dataset.nav); }));
     $('#btnTheme').addEventListener('click', () => { const order = ['light', 'dark', 'auto']; const nx = order[(order.indexOf(themePref()) + 1) % 3]; setTheme(nx); toast({ light: '☀️ Tema claro', dark: '🌙 Tema oscuro', auto: '🌓 Tema automático' }[nx]); });
     $('#btnManual').addEventListener('click', openManual);
@@ -1318,6 +1432,6 @@ Usa "reps" o "segundos" (el otro en null).`;
   }
 
   // Exponer para depuración/pruebas
-  window.MiFitApp = { S, P, version: APP_VERSION, buildSteps, generarOffline };
+  window.MiFitApp = { S, P, CAT, version: APP_VERSION, buildSteps, generarOffline };
   document.addEventListener('DOMContentLoaded', init);
 })();

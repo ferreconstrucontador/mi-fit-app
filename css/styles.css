@@ -567,3 +567,44 @@ body.training .toast { bottom: 24px; }
 .player.focus .btn-ghost { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.16); color: #f4f6fa; }
 body.training .toast { top: calc(64px + env(safe-area-inset-top, 0px)); bottom: auto; transform: translate(-50%, -16px); }
 body.training .toast.show { transform: translate(-50%, 0); }
+
+/* ===== Catálogo / Visor de ejercicios ===== */
+.catalog { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; padding-top: var(--safe-t); }
+.cat-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.cat-head h2 { margin: 0; font-size: 1.15rem; flex: 1; }
+.cat-head small { color: var(--muted); font-weight: 700; font-size: .78rem; }
+.cat-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: calc(18px + var(--safe-b)); }
+.cat-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; }
+.cat-controls .full { grid-column: 1 / -1; }
+.cat-controls input, .cat-controls select { height: 46px; width: 100%; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface-2); padding: 0 12px; font-size: .95rem; color: var(--text); min-width: 0; }
+.cat-controls input:focus, .cat-controls select:focus { border-color: var(--brand); outline: none; }
+.cat-viewer { position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 6px 12px 8px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); box-shadow: 0 8px 14px rgba(0, 0, 0, .1); }
+.cat-av { width: 100%; max-width: none; height: 26vh; min-height: 168px; max-height: 250px; aspect-ratio: auto; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%); border-radius: var(--radius); }
+.cat-nav { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.cat-title { flex: 1; min-width: 0; text-align: center; display: flex; flex-direction: column; }
+.cat-title b { font-size: 1.02rem; line-height: 1.2; }
+.cat-title small { color: var(--muted); font-size: .76rem; }
+.cat-modes { display: grid; grid-template-columns: repeat(4, auto); gap: 6px; margin-top: 6px; }
+.cat-modes button { min-height: 44px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface-2); font-weight: 800; font-size: .74rem; padding: 2px 6px; line-height: 1.15; }
+.cat-modes button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.cat-modes button[data-cm="A"].on, .cat-modes button[data-cm="B"].on { background: #22e6ff; border-color: #22e6ff; color: #032229; }
+.cat-modes button[data-cm="guide"].on { background: var(--text); border-color: var(--text); color: var(--bg); }
+.cat-mus { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+.mus-chip { border-radius: 999px; padding: 4px 10px; font-size: .76rem; font-weight: 800; }
+.mus-chip.p { background: #e11d2e; color: #fff; }
+.mus-chip.s { background: #ffb3bc; color: #5a0a18; }
+.mus-lbl { font-size: .72rem; font-weight: 800; color: var(--muted); }
+.cat-note { width: 100%; font-size: .76rem; color: var(--muted); }
+.cat-note button { background: none; border: 0; color: var(--brand); font-weight: 800; text-decoration: underline; padding: 2px; min-height: 32px; }
+.cat-tech { padding: 8px 12px 0; display: flex; flex-direction: column; gap: 5px; }
+.cat-tech .tech-row p { font-size: .84rem; }
+.cat-list { padding: 8px 12px 0; display: flex; flex-direction: column; gap: 6px; }
+.cat-row { display: flex; align-items: center; gap: 10px; text-align: left; min-height: 56px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface); }
+.cat-row b { display: block; font-size: .94rem; line-height: 1.2; }
+.cat-row small { color: var(--muted); font-size: .74rem; }
+.cat-row .cat-lv { margin-left: auto; font-size: .7rem; white-space: nowrap; }
+.cat-row.on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 11%, var(--surface)); box-shadow: inset 0 0 0 1px var(--brand); }
+.cat-empty { text-align: center; color: var(--muted); padding: 24px 8px; }
+@media (max-height: 700px) { .cat-av { min-height: 140px; height: 22vh; } .cat-modes button { min-height: 40px; } }
+.cat-tech .tech-n { background: var(--brand); }
+.cat-tech .tech-row.err .tech-n { background: var(--danger); }

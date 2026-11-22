@@ -78,3 +78,14 @@ Si no cambias `VERSION`, los usuarios se quedarán con la versión anterior en c
 ## ⚠️ Aviso
 
 MiFitApp no sustituye a un médico ni a un fisioterapeuta. Si tienes dolor agudo o una lesión, consulta a un profesional.
+
+## 🔍 Catálogo de Ejercicios (visor)
+
+En **Perfil** (y en **Progreso → Manual**) está el botón **🔍 Catálogo de Ejercicios (136)**. Abre una vista de pantalla completa para inspeccionar cualquier ejercicio sin esperar a que salga en una rutina:
+
+- **Búsqueda** por nombre (sin distinguir mayúsculas ni acentos) y filtros por **músculo** (principal o secundario) y por **equipo** (incluye "solo peso corporal").
+- **Avatar del visor** a elección (por defecto un anatómico, para ver los músculos iluminados; los demás entrenadores también funcionan y avisan que los músculos solo se iluminan en los anatómicos). La elección es temporal: **no cambia tu entrenador guardado**.
+- **Visor animado** con **▶ Movimiento** continuo, **A · Pose inicial** y **B · Punto máximo** (tocar A/B otra vez vuelve al movimiento), **📍 Guía** (marcadores en las articulaciones) y flechas ◀ ▶ para recorrer la lista.
+- **Etiquetas** de músculos 🔴 principales y 🩷 secundarios (los de `MUS_ID` / `MUS_PATRON` en `js/ejercicios.js`) y la tarjeta de técnica (posición inicial, ejecución y error común).
+
+Es una vista de **solo consulta**: no escribe nada en `localStorage` ni en IndexedDB. El botón Atrás del teléfono (o Escape) la cierra.

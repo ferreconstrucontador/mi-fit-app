@@ -124,6 +124,12 @@
         </div>
       </div>
 
+      <div class="card">
+        <h3>🔍 Explorar ejercicios</h3>
+        <p class="hint">Mira cualquier ejercicio en movimiento, su pose inicial y su punto máximo, con los músculos iluminados, sin esperar a que salga en una rutina.</p>
+        <button class="btn btn-primary" id="btnCatalogo">🔍 Catálogo de Ejercicios (136)</button>
+      </div>
+
       <div class="card" id="cardRespaldo">
         <h3>💾 Datos y respaldo</h3>
         <p class="hint">Todo vive en tu teléfono. Exporta un respaldo para no perder tu progreso.</p>
@@ -339,6 +345,7 @@
       <div class="card">
         <h3>📘 Manual interactivo</h3>
         <button class="btn btn-secondary" id="btnTour2">🧭 Iniciar tour guiado (7 pasos)</button>
+        <button class="btn btn-ghost" id="btnCatalogo2">🔍 Catálogo de Ejercicios (136)</button>
         <div id="faq" class="faq"></div>
       </div>
     </section>
@@ -376,6 +383,39 @@
         <button class="btn btn-primary" id="tourNext">Siguiente</button>
       </div>
       <button class="link-btn" id="tourSkip">Saltar tour</button>
+    </div>
+  </div>
+
+  <!-- ===== Catálogo / Visor de ejercicios (pantalla completa) ===== -->
+  <div class="catalog" id="catalog" hidden role="dialog" aria-modal="true" aria-label="Catálogo de ejercicios">
+    <div class="cat-head">
+      <button class="icon-btn" id="catClose" aria-label="Cerrar catálogo">✕</button>
+      <h2>🔍 Catálogo <small id="catCount"></small></h2>
+    </div>
+    <div class="cat-scroll">
+      <div class="cat-controls">
+        <input type="search" id="catQ" class="full" placeholder="Buscar por nombre…" autocomplete="off" aria-label="Buscar ejercicio">
+        <select id="catMus" aria-label="Filtrar por músculo"></select>
+        <select id="catEq" aria-label="Filtrar por equipo"></select>
+        <select id="catChar" class="full" aria-label="Avatar del visor"></select>
+      </div>
+      <div class="cat-viewer">
+        <div class="avatar-box cat-av" id="catAvatar"></div>
+        <div class="cat-nav">
+          <button class="icon-btn" id="catPrev" aria-label="Ejercicio anterior">◀</button>
+          <div class="cat-title"><b id="catName"></b><small id="catMeta"></small></div>
+          <button class="icon-btn" id="catNext" aria-label="Ejercicio siguiente">▶</button>
+        </div>
+        <div class="cat-modes" id="catModes" role="group" aria-label="Vista del ejercicio">
+          <button data-cm="move" class="on">▶ Movimiento</button>
+          <button data-cm="A">A · Pose inicial</button>
+          <button data-cm="B">B · Punto máximo</button>
+          <button data-cm="guide" class="on" aria-pressed="true">📍 Guía</button>
+        </div>
+        <div class="cat-mus" id="catMusChips"></div>
+      </div>
+      <div class="cat-tech" id="catTech"></div>
+      <div class="cat-list" id="catList"></div>
     </div>
   </div>
 
