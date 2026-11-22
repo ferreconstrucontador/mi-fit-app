@@ -40,7 +40,7 @@ Se eligen en **Perfil → Mi entrenador** o con el botón **🎭 Entrenador** de
 
 ## 🧍 Preparación de 10 segundos y guía de postura
 
-Antes de **cada** ejercicio hay una preparación de 10 s exactos (`PREP_SECS`): el avatar queda en la **pose inicial (A)** con puntos luminosos en las articulaciones a cuidar y flechas de movimiento, más una tarjeta con *Posición inicial*, *Ejecución* y *Error común a evitar*. La voz lee la posición inicial. Controles: **⏭️ Empezar ya** (salta la cuenta), **A / B** (pose inicial / punto máximo; en B la cuenta se pausa) y **🧍 Postura inicial** (consulta en cualquier momento; pausa mientras se revisa).
+Antes de **cada** ejercicio hay una preparación de 10 s exactos (`PREP_SECS`): el avatar **ejecuta en bucle el movimiento real del ejercicio** (con los músculos iluminados y puntos luminosos en las articulaciones a cuidar), más una tarjeta con *Posición inicial*, *Ejecución* y *Error común a evitar*. La voz lee la posición inicial. Controles: **⏭️ Empezar ya** (salta la cuenta), **A / B** (congelan la pose inicial / el punto máximo con flechas de movimiento; tocar el mismo botón otra vez vuelve al movimiento; en B la cuenta se pausa) y **🧍 Postura inicial** (consulta en cualquier momento; pausa mientras se revisa).
 
 - **Textos:** `GUIA_PATRON` (por patrón de movimiento) y `GUIA_ID` (por ejercicio) en `js/ejercicios.js`. La *Ejecución* es el `tip` de cada ejercicio. Mantén la posición inicial en ~14 palabras para que la voz termine antes de la cuenta de 3 s.
 - **Marcadores:** `['pt'|'spine'|'span', articulación, etiqueta]`; las articulaciones son `K` rodillas, `A` pies, `W` manos, `E` codos, `S` hombros y `H` cadera. Las poses A y B salen de los fotogramas de la animación y las flechas se calculan solas.

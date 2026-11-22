@@ -1021,7 +1021,7 @@
         b += drawArm(J, 'L', true, S) + drawLimb(J, 'L', true, S) + drawTail(J, p, S, tm) + drawTorso(J, p, S) + drawLimb(J, 'R', false, S) + drawHead(J, p, S, tm) + drawArm(J, 'R', false, S);
       }
       b += drawJoints(J, S) + drawProps(J, props, a, ctx);
-      if (this.guide) b += drawGuide(J, this.guide, this.arrows, this.hold, now);
+      if (this.guide) b += drawGuide(J, this.guide, this.hold ? this.arrows : [], this.hold, now);
       this.svgBody.innerHTML = b;
     }
     // Doble disparador: requestAnimationFrame + temporizador de respaldo. Si el navegador

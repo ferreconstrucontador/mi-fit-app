@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.3.0'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.3.1'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -664,8 +664,9 @@ Usa "reps" o "segundos" (el otro en null).`;
   }
 
   // ---------- Guía visual de postura (preparación / consulta) ----------
+  // v = 'A' | 'B' (pose congelada para inspeccionarla) | null (movimiento fluido del ejercicio)
   function setAB(v) {
-    P.guideView = v;
+    P.guideView = v || 'M';
     $$('#plAB button').forEach(b => b.classList.toggle('on', b.dataset.ab === v));
     liveAvatar.showPose(v);
     $('#plHoldChip').hidden = !(P.guide === 'prep' && v === 'B');   // en B la cuenta regresiva se detiene
@@ -676,7 +677,9 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#player').dataset.guide = 'on';
     $('#techIni').textContent = g.ini; $('#techEje').textContent = g.eje; $('#techErr').textContent = g.err;
     liveAvatar.setGuide(g.marks);
-    setAB('A');
+    // Preparación: el avatar ejecuta el movimiento real en bucle; A/B congelan la pose a petición.
+    // Consulta de postura (inspect): arranca en la pose inicial.
+    setAB(mode === 'prep' ? null : 'A');
   }
   function quietPause(v) {
     P.paused = v; $('#player').classList.toggle('paused', v);
@@ -876,7 +879,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#plFocus').addEventListener('click', () => applyFocus(!S.settings.enfoque));
     $('#plPosture').addEventListener('click', openInspect);
     $('#plGo').addEventListener('click', () => { if (P.guide === 'inspect') closeInspect(); else { speak('¡Vamos!'); advance(); } });
-    $('#plAB').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || !P.guide) return; setAB(b.dataset.ab); vibrate(15); });
+    $('#plAB').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || !P.guide) return; setAB(P.guideView === b.dataset.ab ? null : b.dataset.ab); vibrate(15); });   // tocar de nuevo = volver al movimiento
     $('#plNextBtn').addEventListener('click', () => advance());
     $('#plPrev').addEventListener('click', () => {
       if (curStep().type === 'work' && P.phaseMs > 3000) { enterStep(); return; }
