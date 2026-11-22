@@ -651,9 +651,13 @@
       + rg('aB', [[0, '#8b95a4'], [.6, '#545d6a'], [1, '#2e343e']], .5, .4, .9)                   // titanio oscuro (estructura)
       + rg('aBf', [[0, '#6c7583'], [.6, '#404751'], [1, '#232931']], .5, .4, .9)
       + rg('aH', [[0, '#fbfcff'], [.28, '#dbe1ea'], [.68, '#a3adbb'], [1, '#606a79']], .38, .3, .86) // cabeza / manos / articulaciones
+      + rg('aT', [[0, '#ffffff'], [.5, '#e3e8ef'], [1, '#a9b2bf']], .4, .35, .8)                   // perla / titanio claro (tendones, rótula)
+      + rg('aHr', [[0, '#8a94a3'], [.6, '#586170'], [1, '#323944']], .4, .3, .9)                // cabello titanio (cofia y coleta)
       + `<filter id="aG${u}" x="-45%" y="-45%" width="190%" height="190%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="3"/></filter>`;
   }
 
+  // Luz de borde (rim light): fino brillo especular plateado en hombros, espalda, glúteos y cuádriceps
+  const RIM = { hombros: 'top', espalda: 'e1', gluteos: 'e1', cuadriceps: 'e1' };
   // Un músculo: contorno con degradado + fibras sutiles; si es principal, su forma alimenta el resplandor
   function muscleSvg(rib, id, far, A, fib) {
     const S = A.S, lv = mlevel(S, id), u = A.u;
@@ -661,96 +665,195 @@
     const fill = (lv === 2 ? 'aA' : lv === 1 ? 'aS' : 'aM') + (far ? 'f' : '') + u;
     let s = `<path d="${d}" fill="url(#${fill})" stroke="${lv === 2 ? '#74000f' : lv === 1 ? '#a43a4c' : '#59636f'}" stroke-width=".7" stroke-linejoin="round"/>`;
     if (fib && !S.lite) s += `<path d="${ribFibers(rib, fib)}" fill="none" stroke="${lv === 2 ? 'rgba(88,0,14,.5)' : lv === 1 ? 'rgba(120,30,50,.42)' : 'rgba(40,50,68,.36)'}" stroke-width=".55" stroke-linecap="round"/>`;
+    if (RIM[id] && !far && !S.lite) {
+      const mean = e => e.reduce((a, q) => a + q[0] + q[1], 0) / e.length;
+      const e = RIM[id] === 'e1' ? rib.e1 : (mean(rib.e1) <= mean(rib.e2) ? rib.e1 : rib.e2);   // 'top' = borde más cercano a la luz (arriba-izquierda)
+      s += `<path d="${smoothPath(e, false)}" fill="none" stroke="${lv === 2 ? 'rgba(255,226,226,.9)' : 'rgba(255,255,255,.85)'}" stroke-width=".85" stroke-linecap="round" opacity=".8"/>`;
+    }
     if (lv === 2) A.glow.push(d);
     return s;
   }
   const baseSvg = (rib, far, A) => `<path d="${ribPath(rib)}" fill="url(#aB${far ? 'f' : ''}${A.u})" stroke="#2b313a" stroke-width=".8" stroke-linejoin="round"/>`;
-  const capSvg = (c, r, A) => circ(c, r, `url(#aH${A.u})`, ' stroke="#4d5663" stroke-width=".7"') + circ(c, r * .38, A.S.acc);
 
-  function anLeg(J, k, far, S, T, A) {
-    const Hp = J['H' + k], K = J['K' + k], An = J['A' + k], F = J['F' + k], fr = J.front, m = fr ? (k === 'L' ? -1 : 1) : 1, kk = T.kL;
-    let s = baseSvg(boneRib(Hp, K, prof(fr ? T.thighF : T.thighS), m, kk), far, A) + baseSvg(boneRib(K, An, prof(fr ? T.shinF : T.shinS), m, kk), far, A);
+  // ----- Estructura continua de una extremidad: contorno exterior + relleno con UN degradado compartido -----
+  // (el contorno se dibuja debajo de todos los rellenos: solo se ve por fuera de la unión, sin costuras ni "bolitas")
+  const limbGrad = (id, a, b, far) => `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}"><stop offset="0" stop-color="${far ? '#6a7381' : '#8d97a6'}"/><stop offset="1" stop-color="${far ? '#262c35' : '#373e49'}"/></linearGradient>`;
+  function baseLayer(shapes, gid) {
+    let o = '', f = '';
+    for (const sh of shapes) {
+      if (sh.d) { o += `<path d="${sh.d}" fill="#2b313a" stroke="#2b313a" stroke-width="1.9" stroke-linejoin="round"/>`; f += `<path d="${sh.d}" fill="url(#${gid})"/>`; }
+      else { o += circ(sh.c, sh.r + .95, '#2b313a'); f += circ(sh.c, sh.r, `url(#${gid})`); }
+    }
+    return o + f;
+  }
+  // Sombra suave de oclusión (penumbra) alrededor de una pieza que queda delante de otra
+  const shadowStroke = ds => ds.map(d => `<path d="${d}" fill="none" stroke="#04070c" stroke-width="7.5" stroke-linejoin="round" opacity=".08"/><path d="${d}" fill="none" stroke="#04070c" stroke-width="4" stroke-linejoin="round" opacity=".14"/>`).join('');
+  // Tendón perla/titanio claro con brillo
+  function tendon(pts, w, full) {
+    const d = smoothPath(pts, false);
+    return (full ? `<path d="${d}" fill="none" stroke="#6f7988" stroke-width="${f1(w + 1)}" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>` : '')
+      + `<path d="${d}" fill="none" stroke="#e4e8ef" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`
+      + (full && w >= 1.8 ? `<path d="${d}" fill="none" stroke="#fff" stroke-width="${f1(w * .35)}" stroke-linecap="round" opacity=".85"/>` : '');
+  }
+  const bp = (A, B, t, o, sg, k) => { const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy) || 1; return [A[0] + dx * t + dy / len * o * sg * k, A[1] + dy * t - dx / len * o * sg * k]; };
+  const axAng = (A, B) => Math.atan2(B[1] - A[1], B[0] - A[0]) * 180 / Math.PI;
+  const pearl = (c, rx, ry, ang, A) => ellip(c, rx, ry, `url(#aT${A.u})`, ang, ' stroke="#8a94a3" stroke-width=".4"');
+
+  function anLeg(J, k, far, S, T, A, sh) {
+    const Hp = J['H' + k], K = J['K' + k], An = J['A' + k], F = J['F' + k], fr = J.front, m = fr ? (k === 'L' ? -1 : 1) : 1, kk = T.kL, u = A.u, full = !S.lite;
+    const thigh = boneRib(Hp, K, prof(fr ? T.thighF : T.thighS), m, kk), shin = boneRib(K, An, prof(fr ? T.shinF : T.shinS), m, kk);
+    const dT = ribPath(thigh), dS = ribPath(shin), gid = `aL${u}${k}${far ? 'f' : 'n'}`;
+    let s = limbGrad(gid, Hp, An, far);
+    if (sh && full) s += shadowStroke([dT, dS]);
+    s += baseLayer([{ d: dT }, { d: dS }, { c: Hp, r: 7.2 * kk }, { c: K, r: 4.9 * kk }, { c: An, r: 3.1 * kk }], gid);
     const mu = (a, b, st, id, f) => muscleSvg(boneRib(a, b, st, m, kk), id, far, A, f);
+    const P = (a, b, t, o) => bp(a, b, t, o, m, kk);
     if (fr) {
       s += mu(Hp, K, T.hamF, 'isquios', 1) + mu(Hp, K, T.hamFi, 'isquios', 1) + mu(K, An, T.gastroOF, 'pantorrillas', 2) + mu(K, An, T.gastroIF, 'pantorrillas', 2)
         + mu(K, An, T.tibF, 'tibial', 1) + mu(Hp, K, T.vlF, 'cuadriceps', 3) + mu(Hp, K, T.vmF, 'cuadriceps', 2) + mu(Hp, K, T.rfF, 'cuadriceps', 2);
-      s += `<ellipse cx="${f1(F[0])}" cy="${f1(F[1])}" rx="4.4" ry="2.7" fill="url(#aH${A.u})" stroke="#4d5663" stroke-width=".6"/>`;
+      s += tendon([P(Hp, K, .84, 0), P(Hp, K, 1, 0), P(K, An, .15, 0)], 1.9, full) + (full ? tendon([P(Hp, K, .06, 7.6), P(Hp, K, .5, 8.2), P(Hp, K, .96, 5.4)], 1.1, full) : '');
+      s += ellip(F, 4.4, 2.7, `url(#aH${u})`, 0, ' stroke="#4d5663" stroke-width=".6"');
     } else {
       s += mu(Hp, K, T.hamS, 'isquios', 3) + mu(K, An, T.calfS, 'pantorrillas', 3) + mu(K, An, T.soleusS, 'pantorrillas', 1) + mu(K, An, T.tibS, 'tibial', 1) + mu(Hp, K, T.quadS, 'cuadriceps', 3);
-      s += `<path d="${ribPath(boneRib(An, F, [[-.3, 2.6, -3.2], [.15, 3.8, -3.2], [.6, 3.2, -2.6], [1, 1.8, -1.8]], 1, 1))}" fill="url(#aH${A.u})" stroke="#4d5663" stroke-width=".6" stroke-linejoin="round"/>`;
+      s += tendon([P(Hp, K, .86, 4.4), P(Hp, K, 1, 5.0), P(K, An, .14, 4.1)], 1.9, full) + tendon([P(Hp, K, .84, -3.9), P(Hp, K, 1, -4.5), P(K, An, .1, -4.7)], 1.5, full);
+      s += `<path d="${ribPath(boneRib(An, F, [[-.3, 2.6, -3.2], [.15, 3.8, -3.2], [.6, 3.2, -2.6], [1, 1.8, -1.8]], 1, 1))}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".6" stroke-linejoin="round"/>`;
     }
-    return s + capSvg(K, 3.5 * kk, A);
+    const kc = P(Hp, K, 1, fr ? 0 : 4.7);                       // rótula integrada (perla, sin contorno de "bola")
+    return s + pearl(kc, 3.1 * kk, 2.5 * kk, axAng(Hp, K), A) + circ(kc, .8, S.acc);
   }
 
-  function anArm(J, k, far, S, T, A) {
-    const Sh = J['S' + k], E = J['E' + k], Wr = J['W' + k], fr = J.front, m = fr ? (k === 'L' ? -1 : 1) : 1, kk = T.kA;
-    let s = baseSvg(boneRib(Sh, E, prof(fr ? T.armF : T.armS), m, kk), far, A) + baseSvg(boneRib(E, Wr, prof(fr ? T.foreF : T.foreS), m, kk), far, A);
+  function anArm(J, k, far, S, T, A, sh) {
+    const Sh = J['S' + k], E = J['E' + k], Wr = J['W' + k], fr = J.front, m = fr ? (k === 'L' ? -1 : 1) : 1, kk = T.kA, u = A.u, full = !S.lite;
+    const upper = boneRib(Sh, E, prof(fr ? T.armF : T.armS), m, kk), fore = boneRib(E, Wr, prof(fr ? T.foreF : T.foreS), m, kk);
+    const dU = ribPath(upper), dF = ribPath(fore), gid = `aQ${u}${k}${far ? 'f' : 'n'}`;
+    let s = limbGrad(gid, Sh, Wr, far);
+    if (sh && full) s += shadowStroke([dU, dF]);
+    s += baseLayer([{ d: dU }, { d: dF }, { c: Sh, r: 6 * kk }, { c: E, r: 3.7 * kk }, { c: Wr, r: 2.5 * kk }], gid);
     const mu = (a, b, st, id, f) => muscleSvg(boneRib(a, b, st, m, kk), id, far, A, f);
+    const P = (a, b, t, o) => bp(a, b, t, o, m, kk);
     if (fr) s += mu(Sh, E, T.triF, 'triceps', 2) + mu(E, Wr, T.foreMF, 'antebrazo', 2) + mu(Sh, E, T.bicF, 'biceps', 2) + mu(Sh, E, T.delF, 'hombros', 3);
     else s += mu(Sh, E, T.triS, 'triceps', 2) + mu(E, Wr, T.extS, 'antebrazo', 1) + mu(E, Wr, T.flexS, 'antebrazo', 2) + mu(Sh, E, T.bicS, 'biceps', 2) + mu(Sh, E, T.delS, 'hombros', 3);
-    s += capSvg(E, 3.1 * kk, A);
-    return s + `<ellipse cx="${f1(Wr[0])}" cy="${f1(Wr[1])}" rx="${f1(S.handR)}" ry="${f1(S.handR * 1.12)}" fill="url(#aH${A.u})" stroke="#4d5663" stroke-width=".6"/>`;
+    // tendones del codo y del hombro (perla/titanio claro)
+    if (fr) s += tendon([P(Sh, E, .84, 0), P(Sh, E, 1, 0), P(E, Wr, .1, 0)], 1.5, full);
+    else s += tendon([P(Sh, E, .84, 3.3), P(Sh, E, 1, 3.0), P(E, Wr, .1, 3.3)], 1.4, full) + tendon([P(Sh, E, .84, -3.5), P(Sh, E, 1, -4.0), P(E, Wr, .06, -3.6)], 1.4, full);
+    s += pearl(P(Sh, E, .45, 0), 3, 1.3, axAng(Sh, E), A);                                   // inserción del deltoides
+    const ec = P(Sh, E, 1, fr ? 0 : -3.9);
+    s += pearl(ec, 2.4 * kk, 2 * kk, axAng(Sh, E), A) + circ(ec, .7, S.acc);                  // olécranon / pliegue del codo
+    return s + `<ellipse cx="${f1(Wr[0])}" cy="${f1(Wr[1])}" rx="${f1(S.handR)}" ry="${f1(S.handR * 1.12)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".6"/>`;
   }
 
-  function anTorso(J, p, S, T, A) {
-    const { tdir, perp } = torsoFrame(p), front = J.front, P = J.P, ku = T.kU, TL = L.T;
+  function anTorso(J, p, S, T, A, sh) {
+    const { tdir, perp } = torsoFrame(p), front = J.front, P = J.P, ku = T.kU, full = !S.lite;
     const mu = (st, sg, id, f) => muscleSvg(torsoRib(P, tdir, perp, st, sg, ku), id, false, A, f);
     const R = (rows, fn) => rows.map(fn);
+    const Tq = (u, v) => add(add(P, tdir, v), perp, u);
     let s = '';
+    const baseRib = front ? torsoRib(P, tdir, perp, R(T.torsoF, r => [r[1], r[0], -r[1], r[0]]), 1, 1) : torsoRib(P, tdir, perp, R(T.torsoS, r => [r[1], r[0], -r[2], r[0]]), 1, 1);
+    if (sh && full) s += shadowStroke([ribPath(baseRib)]);          // el tronco proyecta penumbra sobre las extremidades lejanas
+    s += baseSvg(baseRib, false, A);
     if (front) {
-      s += baseSvg(torsoRib(P, tdir, perp, R(T.torsoF, r => [r[1], r[0], -r[1], r[0]]), 1, 1), false, A);
       for (const sg of [-1, 1]) {
         s += mu(T.latF, sg, 'espalda', 2) + mu(T.gluF, sg, 'gluteos', 2) + mu(T.trapF, sg, 'espalda', 2) + mu(T.oblF, sg, 'abdomen', 2);
       }
-      // recto abdominal: bloques con intersecciones tendinosas
       for (const v of T.absRows) for (const sg of [-1, 1]) {
         const cu = T.absCu * sg, hw = T.absHw, hh = 2.6;
         s += muscleSvg(torsoRib(P, tdir, perp, [[cu - hw, v + hh, cu + hw, v + hh], [cu - hw, v - hh, cu + hw, v - hh]], 1, ku), 'abdomen', false, A, 0);
       }
       for (const sg of [-1, 1]) s += mu(T.pecF, sg, 'pecho', 3);
-      s += segc(torsoRib(P, tdir, perp, [[0, 36.5, 0, 36.5]], 1, 1).e1[0], torsoRib(P, tdir, perp, [[0, 10, 0, 10]], 1, 1).e1[0], .8, 'rgba(40,50,68,.45)');
+      s += segc(Tq(0, 36.5), Tq(0, 10), .8, 'rgba(40,50,68,.45)');
+      // clavículas y pliegue inguinal en perla (detalle tendinoso)
+      for (const sg of [-1, 1]) {
+        s += tendon([Tq(sg * 3 * ku, 58.6), Tq(sg * 9.5 * ku, 59.2), Tq(sg * 16.5 * ku, 56.4)], 1.4, full);
+        if (full) s += tendon([Tq(sg * 10.6 * ku, 8.6), Tq(sg * 5.6 * ku, 5.2), Tq(0, 3.6)], 1.1, full);
+      }
     } else {
-      s += baseSvg(torsoRib(P, tdir, perp, R(T.torsoS, r => [r[1], r[0], -r[2], r[0]]), 1, 1), false, A);
       s += mu(T.gluS, 1, 'gluteos', 3) + mu(T.erecS, 1, 'espalda', 2) + mu(T.latS, 1, 'espalda', 3) + mu(T.trapS, 1, 'espalda', 2) + mu(T.absS, 1, 'abdomen', 2) + mu(T.pecS, 1, 'pecho', 3);
-      for (const v of [28, 22.5, 17]) s += segc(torsoRib(P, tdir, perp, [[4.4, v, 4.4, v]], 1, 1).e1[0], torsoRib(P, tdir, perp, [[8.2, v, 8.2, v]], 1, 1).e1[0], .7, 'rgba(40,50,68,.5)');
+      for (const v of [28, 22.5, 17]) s += segc(Tq(4.4, v), Tq(8.2, v), .7, 'rgba(40,50,68,.5)');
+      s += tendon([Tq(3.4, 59.2), Tq(1, 58.4), Tq(-3, 57.6)], 1.3, full);
     }
     return s;
   }
 
+  // Cinta de ancho variable a lo largo de una polilínea (cola de caballo)
+  function taperRib(pts, w0, w1) {
+    const n = pts.length, e1 = [], e2 = [];
+    pts.forEach((q, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, w = (w0 + (w1 - w0) * i / (n - 1)) / 2;
+      e1.push([q[0] + dy / l * w, q[1] - dx / l * w]); e2.push([q[0] - dy / l * w, q[1] + dx / l * w]);
+    });
+    return { e1, e2 };
+  }
+  const cubic = (p0, p1, p2, p3, n) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, a = (1 - t) ** 3, b = 3 * (1 - t) ** 2 * t, c = 3 * (1 - t) * t * t, d = t ** 3; o.push([a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]]); } return o; };
+
+  // Cabeza y cuello esculpidos (maniquí anatómico): cráneo con arco supraciliar, pómulos, mandíbula y
+  // esternocleidomastoideos; en la mujer la coleta nace del cráneo (cofia + cinta).
   function anHead(J, p, S, tm, A) {
-    const c = J.head, r = S.hr, front = J.front, u = A.u;
+    const c = J.head, r = S.hr, front = J.front, u = A.u, full = !S.lite, fem = !!S.fem;
     const ht = rad(180 - p.t + p.hd);
     const up = [Math.sin(ht), Math.cos(ht)], fw = [-up[1], up[0]];
     const Q = (a, b) => [c[0] + fw[0] * a * r + up[0] * b * r, c[1] + fw[1] * a * r + up[1] * b * r];
     const ang = Math.atan2(up[0], -up[1]) * 180 / Math.PI;
-    const top = add(J.neck, up, L.NECK + r * .55);
-    let s = baseSvg(boneRib(J.neck, top, front ? [[0, 5.6, -5.6], [.6, 4.4, -4.4], [1, 3.9, -3.9]] : [[0, 4.8, -5.8], [.6, 3.9, -4.9], [1, 3.6, -4.3]], 1, S.fem ? .9 : 1), false, A);
-    // esternocleidomastoideos (vista frontal) / línea del cuello (perfil)
-    if (front) s += segc(Q(-.62, -.95), add(J.neck, up, 0), 1.1, 'rgba(210,218,230,.5)') + segc(Q(.62, -.95), add(J.neck, up, 0), 1.1, 'rgba(210,218,230,.5)');
-    else s += segc(Q(-.4, -.95), add(J.neck, perp0(up), 1), .9, 'rgba(210,218,230,.4)');
-    if (S.fem) s += front
-      ? ellip(Q(1.02, .12), r * .24, r * .62, '#6c7685', ang + 22)
-      : `<path d="M${pt(Q(-.8, .6))} Q${pt(Q(-2.0, .55 + Math.sin(tm / 300) * .15))} ${pt(Q(-1.75, -.95))}" fill="none" stroke="#6c7685" stroke-width="${f1(r * .46)}" stroke-linecap="round"/>`;
-    s += `<ellipse cx="${f1(c[0])}" cy="${f1(c[1])}" rx="${f1(r * .86)}" ry="${f1(r * 1.1)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".9" transform="rotate(${f1(ang)} ${f1(c[0])} ${f1(c[1])})"/>`;
-    // planos del rostro: cuencas, nariz y mandíbula (sutiles)
+    const E = (a, b, rx, ry, fill, a2, ex) => ellip(Q(a, b), rx * r, ry * r, fill, ang + (a2 || 0), ex);
+    const poly = (pts, closed) => smoothPath(pts.map(q => Q(q[0], q[1])), closed);
+    const mirror = h => h.concat(h.slice(1, -1).reverse().map(q => [-q[0], q[1]]));
+    const dark = 'rgba(34,44,62,', light = 'rgba(255,255,255,';
+    const wv = Math.sin(tm / 300) * .16;
+    const base = J.neck, top = add(J.neck, up, L.NECK + r * .55);
+    let s = baseSvg(boneRib(base, top, front ? [[0, 5.6, -5.6], [.6, 4.4, -4.4], [1, 3.9, -3.9]] : [[0, 4.8, -5.8], [.6, 3.9, -4.9], [1, 3.6, -4.3]], 1, fem ? .9 : 1), false, A);
+    // esternocleidomastoideos
     if (front) {
-      s += ellip(Q(-.34, .08), r * .17, r * .09, '#5d6777', ang) + ellip(Q(.34, .08), r * .17, r * .09, '#5d6777', ang)
-        + segc(Q(0, .02), Q(0, -.34), 1.1, '#7a8493') + segc(Q(-.24, -.58), Q(.24, -.58), 1.1, '#7a8493')
-        + `<path d="M${pt(Q(-.74, -.2))} Q${pt(Q(0, -1.2))} ${pt(Q(.74, -.2))}" fill="none" stroke="rgba(60,70,90,.45)" stroke-width=".9"/>`;
+      for (const sg of [-1, 1]) s += muscleSvg({ e1: [Q(sg * .82, -.56), lp(Q(sg * .82, -.56), add(base, fw, sg * 3.8), .5), add(base, fw, sg * 3.8)], e2: [Q(sg * .5, -.72), lp(Q(sg * .5, -.72), add(base, fw, sg * 1.0), .5), add(base, fw, sg * 1.0)] }, 'cuello', false, A, 1);
     } else {
-      s += ellip(Q(.5, .08), r * .2, r * .1, '#5d6777', ang) + segc(Q(.86, -.04), Q(.98, -.24), 1.1, '#7a8493') + segc(Q(.42, -.58), Q(.8, -.52), 1.1, '#7a8493')
-        + circ(Q(-.08, -.02), r * .16, '#8f99a8') + `<path d="M${pt(Q(-.5, -.6))} Q${pt(Q(.1, -1.12))} ${pt(Q(.78, -.55))}" fill="none" stroke="rgba(60,70,90,.45)" stroke-width=".9"/>`;
+      s += muscleSvg({ e1: [Q(.08, -.72), lp(Q(.08, -.72), add(base, fw, 3.4), .5), add(base, fw, 3.4)], e2: [Q(-.3, -.62), lp(Q(-.3, -.62), add(base, fw, .2), .5), add(base, fw, .2)] }, 'cuello', false, A, 1);
     }
-    return s;
+    // coleta (detrás del cráneo, nace de la cofia)
+    let tail = '', cap = '', tie = '';
+    if (fem) {
+      if (front) {
+        tail = `<path d="${ribPath(taperRib(cubic(Q(.78, .78), Q(1.5, .5 + wv), Q(1.42, -.55), Q(.98, -1.3), 6), r * .5, r * .13))}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
+        cap = `<path d="${poly([[-.92, .5], [-.6, 1.02], [0, 1.12], [.6, 1.02], [.92, .5], [.78, .2], [.4, .62], [0, .7], [-.4, .62], [-.78, .2]], true)}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
+      } else {
+        tail = `<path d="${ribPath(taperRib(cubic(Q(-.9, .52), Q(-1.7, .42 + wv), Q(-1.85, -.5 + wv * 1.4), Q(-1.4, -1.35 + wv), 6), r * .5, r * .13))}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
+        cap = `<path d="${poly([[.8, .78], [.35, 1.1], [-.35, 1.08], [-.93, .55], [-.98, -.02], [-.72, -.38], [-.4, -.06], [-.1, .35], [.35, .66]], true)}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
+        tie = E(-.93, .52, .2, .14, `url(#aT${u})`, 8, ' stroke="#8a94a3" stroke-width=".5"');
+      }
+    }
+    s += tail;
+    // cráneo: contorno de perfil / frente con mandíbula definida
+    const outline = front
+      ? mirror(fem ? [[0, 1.06], [.58, .97], [.84, .63], [.89, .24], [.88, -.06], [.8, -.42], [.64, -.7], [.36, -.94], [0, -1.04]] : [[0, 1.06], [.6, .97], [.88, .62], [.93, .22], [.92, -.08], [.84, -.42], [.7, -.7], [.42, -.93], [0, -1.03]])
+      : (fem ? [[0, 1.06], [.5, .97], [.82, .62], [.9, .36], [.94, .3], [.89, .18], [.93, .05], [1.07, -.17], [.97, -.28], [.99, -.4], [.95, -.5], [.86, -.72], [.66, -.94], [.28, -.9], [-.18, -.7], [-.48, -.48], [-.8, -.2], [-.93, .2], [-.84, .66], [-.5, .96]]
+        : [[0, 1.06], [.52, .96], [.84, .6], [.93, .34], [.98, .27], [.92, .16], [.96, .04], [1.13, -.2], [.99, -.3], [1.01, -.42], [.97, -.52], [.9, -.74], [.72, -.97], [.3, -.92], [-.2, -.72], [-.5, -.5], [-.82, -.2], [-.95, .2], [-.84, .66], [-.5, .96]]);
+    s += `<path d="${poly(outline, true)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".9" stroke-linejoin="round"/>`;
+    // planos faciales: arco supraciliar, cuencas, pómulos, mandíbula, nariz y boca
+    if (front) {
+      s += E(0, .62, .42, .2, light + '.26)');
+      for (const sg of [-1, 1]) {
+        s += `<path d="M${pt(Q(sg * .14, .3))} Q${pt(Q(sg * .46, .46))} ${pt(Q(sg * .82, .3))}" fill="none" stroke="${dark}.38)" stroke-width="2.2" stroke-linecap="round"/>`
+          + `<path d="M${pt(Q(sg * .14, .34))} Q${pt(Q(sg * .46, .5))} ${pt(Q(sg * .82, .34))}" fill="none" stroke="${light}.6)" stroke-width="1" stroke-linecap="round"/>`
+          + E(sg * .36, .14, .21, .1, dark + '.5)') + E(sg * .58, -.12, .24, .14, light + '.3)', sg * -20) + E(sg * .5, -.46, .2, .12, dark + '.2)')
+          + `<path d="M${pt(Q(sg * .1, .22))} L${pt(Q(sg * .13, -.26))}" fill="none" stroke="${dark}.4)" stroke-width="1"/>` + E(sg * .17, -.3, .07, .04, dark + '.55)')
+          + `<path d="M${pt(Q(sg * .82, -.28))} L${pt(Q(sg * .62, -.72))} L${pt(Q(sg * .2, -.97))}" fill="none" stroke="${dark}.5)" stroke-width=".9" stroke-linejoin="round"/>`;
+      }
+      s += E(0, -.2, .1, .08, light + '.4)') + `<path d="M${pt(Q(-.26, -.52))} Q${pt(Q(0, -.58))} ${pt(Q(.26, -.52))}" fill="none" stroke="${dark}.55)" stroke-width=".9" stroke-linecap="round"/>` + E(0, -.64, .16, .05, light + '.22)') + E(0, -.82, .24, .14, light + '.18)');
+    } else {
+      s += E(-.75, .2, .24, .5, dark + '.16)') + E(.2, .72, .6, .2, light + '.2)', -8);
+      s += `<path d="M${pt(Q(.42, .34))} Q${pt(Q(.72, .44))} ${pt(Q(.97, .27))}" fill="none" stroke="${dark}.38)" stroke-width="2.2" stroke-linecap="round"/>`
+        + `<path d="M${pt(Q(.42, .38))} Q${pt(Q(.72, .48))} ${pt(Q(.97, .31))}" fill="none" stroke="${light}.6)" stroke-width="1" stroke-linecap="round"/>`
+        + E(.6, .12, .2, .1, dark + '.5)') + E(.38, -.18, .26, .14, light + '.3)', -10) + E(.3, -.5, .22, .12, dark + '.2)')
+        + `<path d="M${pt(Q(.95, .2))} L${pt(Q(1.09, -.18))}" fill="none" stroke="${light}.5)" stroke-width="1"/>` + E(.98, -.27, .05, .035, dark + '.55)')
+        + `<path d="M${pt(Q(.82, -.46))} L${pt(Q(1.0, -.46))}" fill="none" stroke="${dark}.55)" stroke-width=".9" stroke-linecap="round"/>`
+        + `<path d="M${pt(Q(-.26, -.64))} Q${pt(Q(.3, -.92))} ${pt(Q(.78, -.88))}" fill="none" stroke="${dark}.5)" stroke-width=".9" stroke-linecap="round"/>` + E(-.06, -.03, .13, .25, `url(#aH${u})`, 0, ' stroke="#4d5663" stroke-width=".7"');
+    }
+    return s + cap + tie;
   }
-  const perp0 = up => [up[1], -up[0]];
 
   // Ensamble completo del cuerpo anatómico (mismo orden de capas que los demás modelos)
   function drawAnatomy(J, p, S, tm, A) {
     const T = S.fem ? ANF : AN;
     let b;
-    if (J.front) b = anLeg(J, 'L', false, S, T, A) + anLeg(J, 'R', false, S, T, A) + anTorso(J, p, S, T, A) + anHead(J, p, S, tm, A) + anArm(J, 'L', false, S, T, A) + anArm(J, 'R', false, S, T, A);
-    else b = anArm(J, 'L', true, S, T, A) + anLeg(J, 'L', true, S, T, A) + anTorso(J, p, S, T, A) + anLeg(J, 'R', false, S, T, A) + anHead(J, p, S, tm, A) + anArm(J, 'R', false, S, T, A);
+    if (J.front) b = anLeg(J, 'L', false, S, T, A, false) + anLeg(J, 'R', false, S, T, A, false) + anTorso(J, p, S, T, A, false) + anHead(J, p, S, tm, A) + anArm(J, 'L', false, S, T, A, true) + anArm(J, 'R', false, S, T, A, true);
+    else b = anArm(J, 'L', true, S, T, A, false) + anLeg(J, 'L', true, S, T, A, false) + anTorso(J, p, S, T, A, true) + anLeg(J, 'R', false, S, T, A, true) + anHead(J, p, S, tm, A) + anArm(J, 'R', false, S, T, A, true);
     // Resplandor de los músculos principales: copia desenfocada (feGaussianBlur) DEBAJO del cuerpo.
     // Así se ve sobre fondo claro y oscuro, y no aplana el sombreado de los músculos.
     if (A.glow.length) {
@@ -1013,7 +1116,11 @@
         const pu = .5 + .5 * Math.sin(now / 260);
         S.lite = !!this.lite;
         if (this.glowFe) this.glowFe.setAttribute('stdDeviation', f1(S.lite ? 2 : 2.2 + 2 * pu));   // resplandor pulsante
+        const t0 = performance.now();
         b += drawAnatomy(J, p, S, tm, { S, u: this.uid, glow: [], pu });
+        const cost = performance.now() - t0;   // coste real de construir el dibujo: si es alto, modo ligero
+        this.costEma = this.costEma ? this.costEma * .9 + cost * .1 : cost;
+        if (!this.lite && this.costEma > 12) this.lite = true;
         this.lastRender = now;
       } else if (J.front) {
         b += drawTail(J, p, S, tm) + drawLimb(J, 'L', false, S) + drawLimb(J, 'R', false, S) + drawTorso(J, p, S) + drawHead(J, p, S, tm) + drawArm(J, 'L', false, S) + drawArm(J, 'R', false, S);
