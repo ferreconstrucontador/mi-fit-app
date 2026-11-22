@@ -645,3 +645,27 @@ body.training .toast.show { transform: translate(-50%, 0); }
 .eq-ok { display: inline-block; margin-top: 5px; font-size: .78rem; font-weight: 800; color: var(--ok); }
 .eq-ok.dup, .eq-ok.max { color: var(--prep); }
 .kcal-note { text-align: center; margin: 2px 0 8px; }
+
+/* ===== v1.5.4 · Catálogo: pantalla completa navegable ===== */
+.cat-stage { position: relative; }
+.cat-fs-btn { position: absolute; top: 8px; right: 8px; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--text); font-size: 1.15rem; font-weight: 800; line-height: 1; display: grid; place-items: center; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: .9; }
+.cat-fs-btn:active { transform: scale(.94); }
+.cat-fs-head { display: none; }
+.catalog.fs .cat-head, .catalog.fs .cat-controls, .catalog.fs .cat-tech, .catalog.fs .cat-list, .catalog.fs .cat-mus, .catalog.fs .cat-title, .catalog.fs .cat-fs-btn, .catalog.fs .cm-long { display: none; }
+.catalog.fs .cat-scroll { overflow: hidden; padding: 0; }
+.catalog.fs .cat-viewer { position: fixed; inset: 0; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "head head head" "stage stage stage" "prev modes next"; gap: 8px; align-items: center; padding: calc(8px + var(--safe-t)) 10px calc(10px + var(--safe-b)); border: 0; box-shadow: none; background: var(--bg); }
+.catalog.fs .cat-fs-head { display: flex; grid-area: head; align-items: center; gap: 10px; }
+.cat-fs-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cat-fs-title b { font-size: 1.1rem; line-height: 1.2; }
+.cat-fs-title small { color: var(--muted); font-size: .8rem; font-weight: 700; }
+.catalog.fs .cat-stage { grid-area: stage; height: 100%; min-height: 0; touch-action: pan-y; }
+.catalog.fs .cat-av { height: 100%; min-height: 0; max-height: none; }
+.catalog.fs .cat-nav { display: contents; }
+.catalog.fs #catPrev { grid-area: prev; } .catalog.fs #catNext { grid-area: next; }
+.catalog.fs #catPrev, .catalog.fs #catNext { width: 54px; height: 54px; font-size: 1.25rem; border-radius: 16px; background: var(--surface-2); border: 1.5px solid var(--border); }
+.catalog.fs .cat-modes { grid-area: modes; margin-top: 0; grid-template-columns: repeat(4, 1fr); }
+.catalog.fs .cat-modes button { min-height: 54px; font-size: .78rem; }
+.cat-stage.sw-l .cat-av { animation: catSwL .22s ease-out; } .cat-stage.sw-r .cat-av { animation: catSwR .22s ease-out; }
+@keyframes catSwL { from { opacity: .2; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes catSwR { from { opacity: .2; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cat-stage.sw-l .cat-av, .cat-stage.sw-r .cat-av { animation: none; } }

@@ -414,8 +414,15 @@
         <select id="catEq" aria-label="Filtrar por equipo"></select>
         <select id="catChar" class="full" aria-label="Avatar del visor"></select>
       </div>
-      <div class="cat-viewer">
-        <div class="avatar-box cat-av" id="catAvatar"></div>
+      <div class="cat-viewer" id="catViewer">
+        <div class="cat-fs-head">
+          <div class="cat-fs-title"><b id="catFsName"></b><small id="catFsMus"></small></div>
+          <button class="icon-btn" id="catFsExit" aria-label="Salir de pantalla completa">✕</button>
+        </div>
+        <div class="cat-stage" id="catStage">
+          <div class="avatar-box cat-av" id="catAvatar"></div>
+          <button class="cat-fs-btn" id="catFsBtn" aria-label="Ver en pantalla completa" title="Pantalla completa">⛶</button>
+        </div>
         <div class="cat-nav">
           <button class="icon-btn" id="catPrev" aria-label="Ejercicio anterior">◀</button>
           <div class="cat-title"><b id="catName"></b><small id="catMeta"></small></div>
@@ -423,8 +430,8 @@
         </div>
         <div class="cat-modes" id="catModes" role="group" aria-label="Vista del ejercicio">
           <button data-cm="move" class="on">▶ Movimiento</button>
-          <button data-cm="A">A · Pose inicial</button>
-          <button data-cm="B">B · Punto máximo</button>
+          <button data-cm="A">A<span class="cm-long"> · Pose inicial</span></button>
+          <button data-cm="B">B<span class="cm-long"> · Punto máximo</span></button>
           <button data-cm="guide" class="on" aria-pressed="true">📍 Guía</button>
         </div>
         <div class="cat-mus" id="catMusChips"></div>

@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.5.3'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.5.4'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -187,6 +187,7 @@
     else if (name === 'tour') endTourUI();
     else if (name === 'player') closePlayerUI();
     else if (name === 'catalog') closeCatalogUI();
+    else if (name === 'catfs') catFsLeave();
   }
 
   // ---------- Modal ----------
@@ -1394,6 +1395,8 @@ Usa "reps" o "segundos" (el otro en null).`;
     CAT.sel = id;
     $$('#catList .cat-row').forEach(b => b.classList.toggle('on', b.dataset.id === id));
     $('#catName').textContent = e.n;
+    $('#catFsName').textContent = e.n;
+    $('#catFsMus').textContent = `${e.g} · 🎯 ${e.mus.p.length ? DB.musNombres(e.mus.p).join(', ') : '—'}`;
     $('#catMeta').textContent = `${eqTxt(e)} · Nivel ${'⭐'.repeat(e.lv)} · ${e.t === 's' ? 'Por tiempo' : 'Repeticiones'}`;
     const chips = (arr, cls) => (arr.length ? DB.musNombres(arr).map(n => `<span class="mus-chip ${cls}">${esc(n)}</span>`).join('') : '<span class="mus-lbl">—</span>');
     const anat = charById(CAT.char).kind === 'anatomy';
@@ -1411,6 +1414,20 @@ Usa "reps" o "segundos" (el otro en null).`;
     catSelect(CAT.list[(i < 0 ? 0 : i + d + CAT.list.length) % CAT.list.length].id);
     vibrate(10);
   }
+  // ----- Pantalla completa navegable (se cierra primero con "Atrás" sin salir del catálogo) -----
+  const catFsOn = () => $('#catalog').classList.contains('fs');
+  function catFsEnter() {
+    if (catFsOn() || $('#catalog').hidden) return;
+    $('#catalog').classList.add('fs'); pushOverlay('catfs');
+    if (CAT.avatar) CAT.avatar.ensure();
+  }
+  function catFsLeave() {
+    $('#catalog').classList.remove('fs');
+    if (CAT.avatar) CAT.avatar.ensure();
+  }
+  function catFlash(d) {
+    const st = $('#catStage'); st.classList.remove('sw-l', 'sw-r'); void st.offsetWidth; st.classList.add(d > 0 ? 'sw-l' : 'sw-r');
+  }
   function openCatalog() {
     if (!$('#catalog').hidden) return;
     catBuildControls();
@@ -1426,6 +1443,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     catSelect(CAT.sel && DB.BY_ID[CAT.sel] ? CAT.sel : DB.EJERCICIOS[0].id);
   }
   function closeCatalogUI() {
+    $('#catalog').classList.remove('fs');
     $('#catalog').hidden = true;
     if (CAT.avatar) { CAT.avatar.destroy(); CAT.avatar = null; }
   }
@@ -1440,8 +1458,23 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#catEq').addEventListener('change', catRefresh);
     $('#catChar').addEventListener('change', e => { CAT.char = e.target.value; catSelect(CAT.sel); });
     $('#catList').addEventListener('click', e => { const r = e.target.closest('.cat-row'); if (r) catSelect(r.dataset.id); });
-    $('#catPrev').addEventListener('click', () => catStep(-1));
-    $('#catNext').addEventListener('click', () => catStep(1));
+    $('#catPrev').addEventListener('click', () => { catStep(-1); if (catFsOn()) catFlash(-1); });
+    $('#catNext').addEventListener('click', () => { catStep(1); if (catFsOn()) catFlash(1); });
+    $('#catFsBtn').addEventListener('click', catFsEnter);
+    $('#catFsExit').addEventListener('click', () => { if (overlays[overlays.length - 1] === 'catfs') popOverlayUI(); });
+    // deslizar horizontalmente en pantalla completa: siguiente / anterior
+    let sx = 0, sy = 0, sT = 0;
+    const stg = $('#catStage');
+    stg.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; sT = Date.now(); }, { passive: true });
+    stg.addEventListener('touchend', e => {
+      if (!catFsOn() || !e.changedTouches.length) return;
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Date.now() - sT < 700 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.6) { const d = dx < 0 ? 1 : -1; catStep(d); catFlash(d); }
+    }, { passive: true });
+    document.addEventListener('keydown', e => {
+      if (!catFsOn()) return;
+      if (e.key === 'ArrowRight') { catStep(1); catFlash(1); } else if (e.key === 'ArrowLeft') { catStep(-1); catFlash(-1); }
+    });
     $('#catMusChips').addEventListener('click', e => { if (e.target.closest('#catGoAnat')) { CAT.char = 'anat_m'; $('#catChar').value = 'anat_m'; catSelect(CAT.sel); } });
     $('#catModes').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;

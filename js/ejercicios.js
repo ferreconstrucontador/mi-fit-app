@@ -113,7 +113,7 @@
     { id: 'puente_gluteo', n: 'Puente de glúteo', g: 'Glúteos', p: 'gluteo', eq: [], lv: 1, ci: [], t: 'r', b: 15, a: 'bridge', met: 3.5, m: 'Glúteos, isquios', tip: 'Aprieta glúteos arriba, sin arquear la espalda baja.', f: 'cp' },
     { id: 'puente_1p', n: 'Puente a una pierna', g: 'Glúteos', p: 'gluteo', eq: [], lv: 2, ci: [], t: 'r', b: 10, a: 'bridge', met: 4, m: 'Glúteos, core', tip: 'Cadera nivelada, empuja con el talón de apoyo.', f: 'p' },
     { id: 'puente_miniband', n: 'Puente con mini band', g: 'Glúteos', p: 'gluteo', eq: ['miniband'], lv: 1, ci: [], t: 'r', b: 15, a: 'bridge', met: 4, m: 'Glúteo mayor y medio', tip: 'Abre rodillas contra la banda al subir.', f: 'p' },
-    { id: 'hip_thrust_mancuerna', n: 'Hip thrust con mancuerna', g: 'Glúteos', p: 'gluteo', eq: ['mancuernas'], lv: 1, ci: [], t: 'r', b: 12, a: 'bridge', met: 4.5, m: 'Glúteos', tip: 'Pesa sobre la cadera, pausa 1 s arriba.', f: 'p' },
+    { id: 'hip_thrust_mancuerna', n: 'Hip thrust con mancuerna', g: 'Glúteos', p: 'gluteo', eq: ['mancuernas'], lv: 1, ci: [], t: 'r', b: 12, a: 'hipthrust', met: 4.5, m: 'Glúteos', tip: 'Pesa sobre la cadera, pausa 1 s arriba.', f: 'p' },
     { id: 'patada_gluteo', n: 'Patada de glúteo en cuadrupedia', g: 'Glúteos', p: 'gluteo', eq: [], lv: 1, ci: ['munecas'], t: 'r', b: 15, a: 'glutekick', met: 3.5, m: 'Glúteo mayor', tip: 'Empuja el talón al techo sin girar la cadera.', f: 'p' },
     { id: 'patada_gluteo_mb', n: 'Patada de glúteo con mini band', g: 'Glúteos', p: 'gluteo', eq: ['miniband'], lv: 1, ci: ['munecas'], t: 'r', b: 15, a: 'glutekick', met: 4, m: 'Glúteo mayor', tip: 'Banda sobre las rodillas, movimiento controlado.', f: 'p' },
     { id: 'caminata_lateral', n: 'Caminata lateral con mini band', g: 'Glúteos', p: 'gluteo', eq: ['miniband'], lv: 1, ci: [], t: 's', b: 30, a: 'sidestep', met: 4, m: 'Glúteo medio', tip: 'Semisentadilla, pasos cortos y tensión constante.', f: 'cp' },
@@ -333,6 +333,9 @@
   const _colgar = { ini: 'Cuelga con brazos extendidos y hombros activos.', err: 'Balancearte o encoger los hombros hacia las orejas.' };
   const _espaldaPiso = { ini: 'Boca arriba, espalda baja pegada al piso y abdomen firme.', err: 'Arquear la espalda baja al mover las piernas.' };
   const _escal = { ini: 'Manos en el manillar, torso erguido y pies centrados en los pedales.', err: 'Colgarte del manillar o dar pasos cortos sin empujar el pedal.', marks: [['spine', '', 'Torso erguido'], ['pt', 'W', 'Agarre ligero'], ['pt', 'K', 'Rodillas alineadas']] };
+  // Burpee y gusano: marcadores propios (la plantilla de cardio hablaba de "torso erguido / aterrizaje suave")
+  const _marksBurpee = [['spine', '', 'Core firme'], ['pt', 'W', 'Manos bajo hombros'], ['pt', 'A', 'Extensión completa']];
+  const _gusano = { ini: 'De pie, piernas casi rectas y espalda larga; baja las manos al piso.', err: 'Doblar mucho las rodillas o hundir la cadera en la plancha.', marks: _marksBurpee };
   const GUIA_ID = {
     puente_gluteo: _boca, puente_1p: _boca, puente_miniband: _boca, hip_thrust_mancuerna: _boca,
     plancha: { ini: 'Antebrazos bajo los hombros, cuerpo en línea recta.', err: 'Hundir la cadera o levantarla demasiado.' },
@@ -352,8 +355,9 @@
     colgarse_barra: _colgar, dominada_negativa: _colgar, dominada_asistida: _colgar, dominada: _colgar,
     fondos_silla: { ini: 'Manos en el borde de la silla, cadera cerca y codos atrás.', err: 'Dejar caer los hombros o alejar la cadera de la silla.' },
     swing_kb: { ini: 'Pies más anchos que la cadera, kettlebell delante y espalda plana.', err: 'Hacer sentadilla y levantar con los brazos.' },
-    burpee: { ini: 'De pie, pies al ancho de hombros y listo para bajar.', err: 'Hundir la cadera al llegar a la plancha.' },
-    burpee_sin_salto: { ini: 'De pie, pies al ancho de hombros y listo para bajar.', err: 'Hundir la cadera al llegar a la plancha.' },
+    burpee: { ini: 'De pie, pies al ancho de hombros y listo para bajar.', err: 'Hundir la cadera al llegar a la plancha.', marks: _marksBurpee },
+    burpee_sin_salto: { ini: 'De pie, pies al ancho de hombros y listo para bajar.', err: 'Hundir la cadera al llegar a la plancha.', marks: _marksBurpee },
+    gusano: _gusano, gusano_mov: _gusano,
     saltar_cuerda: { ini: 'Codos pegados, muñecas sueltas y rodillas ligeras.', err: 'Saltar muy alto o abrir los codos.' },
     escaladores: { ini: 'En plancha alta, manos bajo hombros y cuerpo recto.', err: 'Subir la cadera al llevar las rodillas.' },
     gato_vaca: { ini: 'En cuatro apoyos, manos bajo hombros y rodillas bajo la cadera.', err: 'Mover solo el cuello y no toda la columna.' },

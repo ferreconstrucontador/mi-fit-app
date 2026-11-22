@@ -122,6 +122,14 @@ Multiplicador por RPE: Fácil ×0.90 · Justo ×1.00 · Muy pesado ×1.15. El re
 - **Estiramiento de cuádriceps de pie** (`stretchquad`): la mano del lado de la pierna flexionada sujeta el empeine/tobillo (posiciones calculadas con cinemática inversa).
 - Solo cambian esas animaciones; `pulldown` (ligas/banda), los demás ejercicios y el estilo de los avatares siguen igual. Datos de usuario intactos.
 
+## ⛶ Pantalla completa y más posturas (v1.5.4)
+
+- **Catálogo en pantalla completa:** el botón **⛶** (esquina superior derecha del avatar) expande el visor al 100 % del celular. Muestra arriba el nombre, el grupo y los músculos principales con **✕**; abajo **◀ ▶** y los controles **▶ Movimiento · A · B · 📍 Guía**. Se navega por los ejercicios filtrados con las flechas o deslizando a izquierda/derecha. **Atrás** sale primero de la pantalla completa sin cerrar el catálogo (el segundo Atrás lo cierra).
+- **Posturas corregidas:** *Postura del niño* (`child`: sentado sobre los talones, torso sobre los muslos, brazos al frente en el piso), *Pullover con mancuerna* (`pullover`: supino, la mancuerna describe un arco por encima de la cabeza sin atravesar el cuerpo), *Dead bug* (`deadbug`: base con muslos verticales y rodillas a 90° y brazos al techo; se extienden brazo y pierna contrarios), *Plancha lateral* (`sideplank`: apoyo en antebrazo y borde del pie), *Plancha con toque de hombro* (`shouldertap`: la mano cruza el pecho hacia el hombro contrario) y *Rueda abdominal* (`rollout`: la rueda rueda sobre el piso desde las rodillas).
+- **Hip thrust con mancuerna** (`hipthrust`): banco bajo la espalda alta y mancuerna sobre la pelvis; el puente de glúteo en el piso (`bridge`) no cambia.
+- **Etiquetas guía:** Burpee, Burpee sin salto, Gusano y Caminata de manos ahora dicen *Core firme / Manos bajo hombros / Extensión completa*.
+- Solo cambian esas animaciones (verificado con huellas SHA-256 de los 12 avatares estilizados); datos de usuario intactos.
+
 ## 🔍 Catálogo de Ejercicios (visor)
 
 En **Perfil** (y en **Progreso → Manual**) está el botón **🔍 Catálogo de Ejercicios (140)**. Abre una vista de pantalla completa para inspeccionar cualquier ejercicio sin esperar a que salga en una rutina:
