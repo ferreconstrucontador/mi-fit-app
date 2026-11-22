@@ -34,11 +34,9 @@ Se eligen en **Perfil → Mi entrenador** o con el botón **🎭 Entrenador** de
 - **Humanos:** Atleta Masculino, Atleta Femenina, Fuerza / Robusto, Zen / Estilizado, Ninja / Agilidad, Retro 80s.
 - **Mascotas:** Gorila Fuerza, Zorrito Atleta, Jaguar Maya, Panda Fitness.
 - **Objetos:** Fit-Bot (androide con juntas luminosas) y Maniquí Articulado.
-- **Anatómicos:** Anatómico Hombre y Anatómico Mujer (figura plateada). Durante cada ejercicio iluminan en **rojo intenso con pulso** los músculos principales y en **rojo suave** los secundarios (pecho, espalda/dorsales, hombros, bíceps, tríceps, abdomen, glúteos, cuádriceps, isquiotibiales y pantorrillas). Los músculos de cada ejercicio están en `MUS_ID` y `MUS_PATRON` (`js/ejercicios.js`), con el formato `'principales|secundarios'` y códigos de 2 letras (`pe es ho bi tr ab gl cu is pa`): un ejercicio sin entrada propia hereda los de su patrón de movimiento.
-
-Todos comparten el mismo esqueleto, así que ejecutan las 81 animaciones y sostienen ligas, mancuernas, barra, cuerda, TRX y silla. Si un ejercicio no tuviera pose, el avatar hace marcha en el lugar (`FALLBACK_ANIM`) en vez de quedarse quieto.
-
-**Agregar un personaje:** añade una entrada a `CHARS` en `js/avatar.js` (`b` = proporciones, `col` = colores en función del acento, `head` = tipo de cabeza). Si es un tipo de cabeza nuevo, agrégalo a `drawHead`.
+- **Anatómicos:** Anatómico Hombre y Anatómico Mujer, con estética de ilustración anatómica 2.5D: siluetas esculpidas con curvas `<path>` (cada músculo es un "listón" de dos bordes suavizado con Bézier), degradados radiales plata/titanio para el volumen, fibras musculares sutiles y complexión diferenciada (hombros y pecho amplios en él; cintura marcada, cadera y glúteo más amplios en ella). Durante cada ejercicio iluminan en **carmesí intenso con resplandor pulsante** (`feGaussianBlur`) los músculos principales y en **rojo suave** los secundarios (pecho, espalda/dorsales, hombros, bíceps, tríceps, abdomen, glúteos, cuádriceps, isquiotibiales y pantorrillas). Los músculos de cada ejercicio están en `MUS_ID` y `MUS_PATRON` (`js/ejercicios.js`), con el formato `'principales|secundarios'` y códigos de 2 letras (`pe es ho bi tr ab gl cu is pa`): un ejercicio sin entrada propia hereda los de su patrón de movimiento.
+  - **Código aislado:** todo el dibujo anatómico vive en el bloque `ANATOMÍA 2.5D` de `js/avatar.js` (`drawAnatomy`, tablas `AN`/`ANF`); los otros 12 modelos usan otra ruta de dibujo y no se ven afectados. Los `<defs>` (degradados y filtro) solo se inyectan cuando el personaje es anatómico.
+  - **Rendimiento:** los anatómicos se redibujan a ~30 fps y, si el teléfono va lento, pasan solos a un modo ligero (sin desenfoque ni fibras).
 
 ## 🧍 Preparación de 10 segundos y guía de postura
 
@@ -60,7 +58,7 @@ Cada vez que cambies cualquier archivo:
 3. Si agregaste archivos nuevos, añádelos a la lista `ASSETS` de `sw.js`.
 4. Haz commit y push. Los teléfonos descargarán la nueva caché y verán el aviso **"🚀 Nueva versión disponible → Actualizar"**. **Hay que tocar *Actualizar*** (o cerrar la app por completo y abrirla de nuevo); mientras no se haga, el teléfono sigue con la versión anterior. El número de versión aparece al final de la pestaña Perfil para comprobarlo.
 
-Si no cambias `VERSION`, los usuarios se quedarán con la versión anterior en caché.
+Si no cambias `VERSION`, los usuarios se quedarán con la versión anterior en caché. El Service Worker descarga los archivos con `cache: 'reload'` al instalarse: así la versión nueva nunca se precachea con archivos viejos de la caché HTTP de GitHub Pages (`max-age=600`).
 
 ## 🛠️ Mantenimiento
 

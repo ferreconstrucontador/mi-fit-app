@@ -4,7 +4,7 @@
    (y APP_VERSION en js/app.js). Así los teléfonos descargan la nueva versión
    y la app muestra el aviso "Nueva versión disponible".
    ========================================================================= */
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const CACHE = `mifitapp-v${VERSION}`;
 const ASSETS = [
   './',
@@ -21,7 +21,18 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  // cache: 'reload' salta la caché HTTP del navegador (GitHub Pages usa max-age=600). Sin esto,
+  // la versión nueva podía precachearse con archivos VIEJOS y "actualizarse" sin cambiar nada.
+  e.waitUntil(
+    caches.open(CACHE).then((c) =>
+      Promise.all(ASSETS.map((u) =>
+        fetch(new Request(u, { cache: 'reload' })).then((r) => {
+          if (!r.ok) throw new Error('No se pudo descargar ' + u);
+          return c.put(u, r);
+        })
+      ))
+    )
+  );
 });
 
 self.addEventListener('activate', (e) => {

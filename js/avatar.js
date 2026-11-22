@@ -241,10 +241,10 @@
       col: A => ({ skin: '#dcb98c', hair: '#b8905f', shirt: '#dcb98c', shorts: '#c6a173', shoe: '#c6a173' }) },
     // Figuras anatómicas plateadas: los músculos trabajados se iluminan en rojo
     { id: 'anat_m', n: 'Anatómico Hombre', g: 'anatomia', d: 'Plata metálica · músculos que se iluminan', kind: 'anatomy', head: 'anat',
-      b: { sw: 20, hw: 8.5, hpf: 11.5, wf: 14.5, ds: 11, dh: 9, ws: 10, hr: 12.5, legW: 13.6, armW: 10.4, shortsW: 0, sleeveW: 0, shirtW: 6, handR: 4.6, shoeW: 7.5, fem: false, outline: '#7b8595' },
+      b: { sw: 19.5, hw: 8.2, hpf: 11.5, wf: 14.5, ds: 11, dh: 9, ws: 10, hr: 12.6, legW: 13.6, armW: 10.4, shortsW: 0, sleeveW: 0, shirtW: 6, handR: 4.4, shoeW: 7.5, fem: false },
       col: A => ({ skin: '#a9b2bf', hair: '#8d96a4', shirt: '#b7bfca', shorts: '#a9b2bf', shoe: '#98a1af' }) },
     { id: 'anat_f', n: 'Anatómico Mujer', g: 'anatomia', d: 'Plata metálica · músculos que se iluminan', kind: 'anatomy', head: 'anat',
-      b: { sw: 16, hw: 9, hpf: 13, wf: 10.8, ds: 9.5, dh: 10.5, ws: 8.5, hr: 11.8, legW: 12.6, armW: 8.8, shortsW: 0, sleeveW: 0, shirtW: 6, handR: 4.2, shoeW: 7, fem: true, outline: '#7b8595' },
+      b: { sw: 15.5, hw: 9, hpf: 13, wf: 10.8, ds: 9.5, dh: 10.5, ws: 8.5, hr: 11.8, legW: 12.6, armW: 8.8, shortsW: 0, sleeveW: 0, shirtW: 6, handR: 3.9, shoeW: 7, fem: true },
       col: A => ({ skin: '#adb6c3', hair: '#8d96a4', shirt: '#bbc3ce', shorts: '#adb6c3', shoe: '#9ba4b2' }) }
   ];
   const CHAR_BY_ID = {}; CHARS.forEach(c => { CHAR_BY_ID[c.id] = c; });
@@ -287,79 +287,10 @@
     return segc([c[0] - nx * w / 2, c[1] - ny * w / 2], [c[0] + nx * w / 2, c[1] + ny * w / 2], thick, col);
   }
 
-  // ---------- Anatomía: músculos que se iluminan ----------
-  // nivel 2 = principal (rojo intenso con pulso y aura), 1 = secundario (rojo suave), 0 = apagado
-  const mlevel = (S, id) => (S.mlev && S.mlev[id]) || 0;
-  function mEll(c, a, b, axDeg, id, S, far) {
-    const lv = mlevel(S, id), pu = .5 + .5 * Math.sin((S.clock || 0) / 240);
-    const rot = ` transform="rotate(${f1(axDeg)} ${f1(c[0])} ${f1(c[1])})"`;
-    const el = (rx, ry, fill, ex) => `<ellipse cx="${f1(c[0])}" cy="${f1(c[1])}" rx="${f1(rx)}" ry="${f1(ry)}" fill="${fill}"${rot}${ex || ''}/>`;
-    const ux = Math.cos(axDeg * Math.PI / 180), uy = Math.sin(axDeg * Math.PI / 180);
-    const fib = col => `<line x1="${f1(c[0] - ux * a * .72)}" y1="${f1(c[1] - uy * a * .72)}" x2="${f1(c[0] + ux * a * .72)}" y2="${f1(c[1] + uy * a * .72)}" stroke="${col}" stroke-width=".8" stroke-linecap="round"/>`;
-    if (lv === 2) {
-      return el(a + 2 + pu * 1.8, b + 2 + pu * 1.8, '#ff2a2a', ` opacity="${f1(.14 + .22 * pu)}"`)
-        + el(a, b, far ? '#d41826' : '#ff1c2c', ` stroke="#8f0010" stroke-width=".8" opacity="${f1(.88 + .12 * pu)}"`) + fib('rgba(255,235,235,.45)');
-    }
-    if (lv === 1) return el(a, b, far ? '#e8808b' : '#ff93a0', ` stroke="#b8465a" stroke-width=".8" opacity=".92"`) + fib('rgba(255,255,255,.4)');
-    return el(a, b, far ? '#aeb7c3' : '#ccd3de', ` stroke="#6b7585" stroke-width=".8"`) + fib('rgba(70,80,100,.32)');
-  }
-  // Vientre muscular a lo largo de un hueso. off>0 = hacia el frente (perfil) / hacia la derecha de la imagen (frente)
-  function mBelly(A, B, t0, t1, off, wd, id, S, far) {
-    const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, m = lp(A, B, (t0 + t1) / 2);
-    return mEll([m[0] + uy * off, m[1] - ux * off], (t1 - t0) * len / 2, wd, Math.atan2(dy, dx) * 180 / Math.PI, id, S, far);
-  }
-  const jointCap = (c, S) => circ(c, 3.3, shade(S.skin, .3)) + circ(c, 1.5, S.acc);
-  function anatArm(J, k, far, S) {
-    const Sh = J['S' + k], E = J['E' + k], Wr = J['W' + k], w = S.armW, sg = k === 'L' ? -1 : 1;
-    let s = '';
-    if (J.front) {
-      s += mBelly(Sh, E, .24, .9, sg * w * .36, w * .2, 'triceps', S, far) + mBelly(E, Wr, .08, .74, 0, w * .4, 'antebrazo', S, far)
-        + mBelly(Sh, E, .28, .86, 0, w * .36, 'biceps', S, far) + mBelly(Sh, E, -.04, .44, 0, w * .66, 'hombros', S, far);
-    } else {
-      s += mBelly(Sh, E, .2, .9, -w * .2, w * .4, 'triceps', S, far) + mBelly(E, Wr, .08, .74, w * .08, w * .38, 'antebrazo', S, far)
-        + mBelly(Sh, E, .28, .88, w * .2, w * .4, 'biceps', S, far) + mBelly(Sh, E, -.06, .46, 0, w * .66, 'hombros', S, far);
-    }
-    return s + jointCap(E, S);
-  }
-  function anatLeg(J, k, far, S) {
-    const Hp = J['H' + k], K = J['K' + k], A = J['A' + k], w = S.legW, sg = k === 'L' ? -1 : 1;
-    let s = '';
-    if (J.front) {
-      s += mBelly(Hp, K, .1, .9, sg * w * .38, w * .2, 'isquios', S, far) + mBelly(K, A, .06, .62, sg * w * .3, w * .26, 'pantorrillas', S, far)
-        + mBelly(K, A, .18, .88, 0, w * .2, 'tibial', S, far) + mBelly(Hp, K, .08, .92, 0, w * .42, 'cuadriceps', S, far);
-    } else {
-      s += mBelly(Hp, K, .08, .9, -w * .18, w * .36, 'isquios', S, far) + mBelly(K, A, .05, .62, -w * .2, w * .36, 'pantorrillas', S, far)
-        + mBelly(K, A, .16, .9, w * .16, w * .22, 'tibial', S, far) + mBelly(Hp, K, .08, .92, w * .18, w * .4, 'cuadriceps', S, far);
-    }
-    return s + jointCap(K, S);
-  }
-  function anatTorso(J, p, S, T, tdir, perp) {
-    const front = J.front, Tl = L.T;
-    const ax = Math.atan2(tdir[1], tdir[0]) * 180 / Math.PI, axp = Math.atan2(perp[1], perp[0]) * 180 / Math.PI;
-    let s = '';
-    if (front) {
-      for (const sg of [-1, 1]) {
-        s += mEll(T(sg * S.sw * .92, Tl * .55), Tl * .22, 2.8, ax, 'espalda', S);                 // dorsales (laterales)
-        s += mEll(T(sg * 5.4, Tl * .93), 6, 3, axp - sg * 28, 'espalda', S);                      // trapecio
-        s += mEll(T(sg * (S.hpf + .5), 5), 8, 3.4, ax, 'gluteos', S);                             // glúteos (laterales)
-        s += mEll(T(sg * S.wf * .88, Tl * .3), 9, 2.8, ax, 'abdomen', S);                         // oblicuos
-      }
-      for (const v of [.17, .29, .41]) for (const u of [-3.9, 3.9]) s += mEll(T(u, Tl * v), 3.6, 3.3, axp, 'abdomen', S);
-      for (const sg of [-1, 1]) s += mEll(T(sg * S.sw * .42, Tl * (S.fem ? .66 : .72)), S.sw * (S.fem ? .34 : .4), S.fem ? 6.3 : 7.4, axp - sg * (S.fem ? 8 : 14), 'pecho', S);
-    } else {
-      s += mEll(T(-S.ds * .74, Tl * .55), Tl * .24, 3.8, ax, 'espalda', S) + mEll(T(-S.ds * .5, Tl * .88), 6.5, 3.4, ax, 'espalda', S);
-      s += mEll(T(-S.dh * .5, 4), 9, S.fem ? 7 : 6.2, ax, 'gluteos', S);
-      s += mEll(T(S.ds * .72, Tl * .27), Tl * .22, 3.4, ax, 'abdomen', S);
-      s += mEll(T(S.ds * .76, Tl * .7), S.fem ? 8 : 9.5, S.fem ? 3.8 : 4.4, ax, 'pecho', S);
-    }
-    return s;
-  }
-
   function drawLimb(J, k, far, S) {
     const tone = far ? ' far' : '';
     const Hp = J['H' + k], K = J['K' + k], A = J['A' + k], F = J['F' + k];
     let s = poly(Hp, K, A, 'av-leg' + tone);
-    if (S.kind === 'anatomy') s += anatLeg(J, k, far, S);
     if (S.shortsW) {
       if (S.pantsFull) s += seg(Hp, K, S.shortsW - 1.5, 'av-shorts' + tone) + seg(K, A, S.shortsW - 3, 'av-shorts' + tone);
       else s += seg(Hp, lp(Hp, K, .55), S.shortsW, 'av-shorts' + tone);
@@ -377,7 +308,6 @@
     const tone = far ? ' far' : '';
     const Sh = J['S' + k], E = J['E' + k], Wr = J['W' + k];
     let s = poly(Sh, E, Wr, 'av-arm' + tone);
-    if (S.kind === 'anatomy') s += anatArm(J, k, far, S);
     if (S.sleeveW) s += seg(Sh, lp(Sh, E, .4), S.sleeveW, 'av-sleeve' + tone);
     if (S.wrist) {
       s += segc(lp(E, Wr, .66), lp(E, Wr, .94), S.armW + 3, far ? S.accD : S.acc);
@@ -417,7 +347,7 @@
       s += `<path d="${dp}" class="av-shirt"/>`;
     }
     // Cinturón / short sobre la cadera
-    if (S.kind !== 'mannequin' && S.kind !== 'anatomy') s += `<path d="M${pt(add(J.P, perp, hpW + 1))} L${pt(add(J.P, perp, -hpW - 1))}" class="av-belt"/>`;
+    if (S.kind !== 'mannequin') s += `<path d="M${pt(add(J.P, perp, hpW + 1))} L${pt(add(J.P, perp, -hpW - 1))}" class="av-belt"/>`;
     if (S.beltBig) {
       s += segc(add(add(J.P, tdir, 3), perp, hpW + 2), add(add(J.P, tdir, 3), perp, -hpW - 2), 8, '#3a2c24');
       s += circ(T(front ? 0 : S.dh * .85, 3), 3.4, S.acc);
@@ -435,7 +365,6 @@
         s += ellip(T(front ? 0 : 2.4, L.T * .6), front ? 9 : 3.8, 11, '#8e99ab', ang) + circ(q, 6.6, S.acc, ' opacity=".28"') + circ(q, 3.2, S.acc);
       }
     }
-    if (S.kind === 'anatomy') s += anatTorso(J, p, S, T, tdir, perp);
     return s;
   }
 
@@ -599,19 +528,238 @@
       return s;
     }
 
-    if (S.head === 'anat') {
-      if (S.fem) s += front ? E(1.0, .15, .24, .62, S.hair, 22) : `<path d="M${pt(Q(-.8, .6))} Q${pt(Q(-2.0, .55 + wave))} ${pt(Q(-1.75, -.95 + wave))}" fill="none" stroke="${S.hair}" stroke-width="${f1(r * .46)}" stroke-linecap="round"/>`;
-      s += `<ellipse cx="${f1(c[0])}" cy="${f1(c[1])}" rx="${f1(r * .86)}" ry="${f1(r * 1.1)}" class="av-skin" stroke="#7b8595" stroke-width="1" transform="rotate(${f1(ang)} ${f1(c[0])} ${f1(c[1])})"/>`;
-      s += E(-.28, .5, .2, .3, 'rgba(255,255,255,.4)', 0);
-      s += front ? E(-.34, .04, .18, .09, '#6b7585') + E(.34, .04, .18, .09, '#6b7585') + Ln(0, -.02, 0, -.36, 1.2, '#7b8595') + Ln(-.22, -.56, .22, -.56, 1.2, '#7b8595')
-        : E(.5, .05, .2, .1, '#6b7585') + Ln(.85, -.02, .98, -.2, 1.2, '#7b8595') + Ln(.4, -.56, .8, -.5, 1.2, '#7b8595');
-      return s;
-    }
     // Maniquí de madera
     s += `<ellipse cx="${f1(c[0])}" cy="${f1(c[1])}" rx="${f1(r * .84)}" ry="${f1(r * 1.1)}" class="av-skin" transform="rotate(${f1(ang)} ${f1(c[0])} ${f1(c[1])})"/>`;
     s += Ln(-.78, .42, .78, .42, 3, S.acc);
     s += front ? Ln(0, .1, 0, -.7, 1, shade(S.skin, .2)) : Ln(.2, .12, .8, .08, 1, shade(S.skin, .22));
     return s;
+  }
+
+  // =========================================================================
+  //  ANATOMÍA 2.5D — solo "Anatómico Hombre" y "Anatómico Mujer"
+  //  Siluetas esculpidas con <path> orgánicos sobre el MISMO esqueleto. Cada músculo es un
+  //  "listón" (dos bordes de puntos) suavizado con curvas Bézier (Catmull-Rom); degradados
+  //  radiales plata/titanio dan volumen y las fibras salen de interpolar ambos bordes.
+  //  Los músculos activos usan degradado carmesí y un resplandor pulsante (feGaussianBlur).
+  //  Nada de este bloque lo usan los otros 12 modelos.
+  // =========================================================================
+  const mlevel = (S, id) => (S.mlev && S.mlev[id]) || 0;
+
+  // Curva suave que pasa por los puntos (Catmull-Rom → cúbicas de Bézier)
+  function smoothPath(pts, closed) {
+    const n = pts.length;
+    if (n < 2) return '';
+    const g = i => (closed ? pts[(i + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]);
+    let d = `M${pt(pts[0])}`;
+    const m = closed ? n : n - 1;
+    for (let i = 0; i < m; i++) {
+      const p0 = g(i - 1), p1 = g(i), p2 = g(i + 1), p3 = g(i + 2);
+      d += `C${pt([p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6])} ${pt([p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6])} ${pt(p2)}`;
+    }
+    return d + (closed ? 'Z' : '');
+  }
+  const ribPath = r => smoothPath(r.e1.concat(r.e2.slice().reverse()), true);
+  function ribFibers(r, n) {
+    let d = '';
+    for (let k = 1; k <= n; k++) d += smoothPath(r.e1.map((q, i) => lp(q, r.e2[i], k / (n + 1))), false);
+    return d;
+  }
+  // Listón sobre un hueso A→B. st = [t, a, b]: posición t a lo largo y distancias laterales con signo
+  // (+ = frente en perfil / derecha de la imagen en vista frontal). sg espeja el lado; k escala el grosor.
+  function boneRib(A, B, st, sg, k) {
+    const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, nx = uy * sg * k, ny = -ux * sg * k;
+    const q = (t, o) => [A[0] + ux * len * t + nx * o, A[1] + uy * len * t + ny * o];
+    return { e1: st.map(s => q(s[0], s[1])), e2: st.map(s => q(s[0], s[2])) };
+  }
+  // Listón en el marco del torso. st = [u1, v1, u2, v2] (u lateral/hacia delante, v a lo largo de la columna)
+  function torsoRib(P, tdir, perp, st, sg, ku) {
+    const q = (u, v) => [P[0] + tdir[0] * v + perp[0] * u * sg * ku, P[1] + tdir[1] * v + perp[1] * u * sg * ku];
+    return { e1: st.map(s => q(s[0], s[1])), e2: st.map(s => q(s[2], s[3])) };
+  }
+  const prof = a => a.map(s => [s[0], s[1], -s[2]]);
+
+  // ----- Tablas de forma (varón). Mujer: ver ANF al final -----
+  const AN = {
+    // siluetas base [t, delante|fuera, detrás|dentro]
+    thighS: [[0, 8.2, 9.6], [.2, 8.6, 8.8], [.45, 8.2, 7.6], [.7, 6.6, 6.0], [.9, 5.2, 5.0], [1, 4.8, 4.8]],
+    thighF: [[0, 7.5, 5.5], [.3, 8.0, 6.5], [.6, 7.0, 5.8], [.9, 5.2, 4.8], [1, 4.8, 4.6]],
+    shinS: [[0, 4.6, 4.8], [.12, 4.2, 6.2], [.3, 3.8, 6.8], [.5, 3.6, 5.6], [.75, 3.2, 3.6], [1, 3.0, 3.2]],
+    shinF: [[0, 4.6, 4.4], [.15, 5.8, 5.4], [.35, 5.6, 5.0], [.6, 4.0, 3.6], [.85, 3.2, 3.0], [1, 3.0, 3.0]],
+    armS: [[0, 6.4, 6.4], [.25, 5.6, 5.8], [.5, 5.0, 5.4], [.8, 3.9, 4.2], [1, 3.5, 3.5]],
+    armF: [[0, 6.2, 5.0], [.3, 5.4, 4.6], [.6, 4.8, 4.2], [1, 3.6, 3.4]],
+    foreS: [[0, 3.8, 3.8], [.2, 4.6, 4.3], [.45, 4.0, 3.6], [.8, 2.8, 2.6], [1, 2.4, 2.4]],
+    foreF: [[0, 3.8, 3.6], [.25, 4.8, 4.2], [.6, 3.4, 3.0], [1, 2.4, 2.4]],
+    torsoS: [[0, 7.5, 9.0], [5, 9.5, 11.2], [12, 9.8, 10.2], [20, 8.4, 8.4], [28, 9.0, 8.2], [36, 10.6, 9.0], [44, 12.2, 10.2], [52, 11.4, 10.8], [58, 8.6, 9.2], [62, 5.2, 5.6]],
+    torsoF: [[0, 9.5], [5, 11.6], [12, 12.0], [20, 9.8], [28, 9.6], [36, 11.4], [44, 13.4], [50, 15.4], [55, 17.5], [59, 14], [62, 5.2]],
+    // músculos [t, borde1, borde2]
+    quadS: [[.04, 8.4, 2.5], [.2, 8.9, 1.6], [.45, 8.4, 1.4], [.7, 6.9, 1.6], [.92, 5.4, 2.6], [.98, 4.2, 3.0]],
+    hamS: [[.05, -1.5, -9.8], [.2, -1.2, -9.0], [.45, -1.2, -7.8], [.7, -1.4, -6.2], [.9, -2.2, -5.0]],
+    calfS: [[.04, -1.2, -5.8], [.14, -1.0, -6.6], [.3, -1.2, -7.0], [.48, -1.6, -5.4], [.64, -2.0, -3.6]],
+    soleusS: [[.45, -1.4, -4.6], [.62, -1.5, -4.0], [.82, -1.6, -3.2]],
+    tibS: [[.1, 4.2, .6], [.4, 3.6, .5], [.8, 2.8, .5]],
+    vlF: [[.1, 7.6, 2.8], [.3, 8.2, 2.4], [.6, 7.2, 2.4], [.88, 5.2, 2.6]],
+    rfF: [[.08, 3.6, -3.2], [.3, 4.6, -3.8], [.6, 3.8, -3.4], [.85, 2.8, -2.8]],
+    vmF: [[.5, -2.0, -5.6], [.7, -2.2, -6.2], [.85, -2.6, -5.8], [.95, -3.4, -4.8]],
+    hamF: [[.08, 9.2, 6.0], [.4, 9.6, 6.4], [.8, 6.8, 4.4]],
+    hamFi: [[.2, -5.4, -7.6], [.5, -5.6, -7.8], [.8, -4.6, -6.2]],
+    tibF: [[.08, 2.2, -2.0], [.3, 2.6, -2.2], [.6, 2.0, -1.8], [.88, 1.2, -1.2]],
+    gastroOF: [[.05, 5.0, 2.0], [.2, 6.4, 2.2], [.38, 6.0, 2.0], [.55, 3.8, 1.6]],
+    gastroIF: [[.05, -2.0, -5.2], [.2, -2.2, -5.6], [.38, -2.0, -5.2], [.55, -1.8, -3.6]],
+    delS: [[-.12, 3, -3], [0, 6.4, -6.4], [.15, 7.2, -7.0], [.32, 6.0, -5.6], [.46, 3.4, -3.2]],
+    bicS: [[.26, 5.4, .6], [.4, 5.9, .5], [.6, 5.2, .6], [.82, 3.8, .8]],
+    triS: [[.2, -.6, -6.0], [.4, -.6, -6.4], [.6, -.7, -5.6], [.82, -.8, -4.0]],
+    flexS: [[.06, 4.0, .4], [.25, 4.8, .3], [.5, 3.6, .3], [.82, 2.4, .5]],
+    extS: [[.06, -.4, -3.8], [.25, -.4, -4.4], [.5, -.4, -3.4], [.82, -.5, -2.3]],
+    delF: [[-.12, 3, -3], [0, 6.6, -6.0], [.15, 7.4, -6.6], [.32, 6.2, -5.0], [.46, 3.6, -2.8]],
+    bicF: [[.26, 3.2, -3.0], [.4, 3.8, -3.4], [.62, 3.4, -3.0], [.82, 2.6, -2.4]],
+    triF: [[.2, 6.0, 2.4], [.45, 6.4, 2.6], [.7, 5.2, 2.4], [.85, 3.8, 2.2]],
+    foreMF: [[.06, 3.2, -3.0], [.25, 4.2, -3.6], [.6, 3.0, -2.6], [.85, 2.2, -2.0]],
+    // torso [u1, v1, u2, v2]
+    trapF: [[3.2, 61.5, 3.0, 57], [9, 59, 8.8, 54.6], [16.8, 54.6, 14.6, 51.4]],
+    pecF: [[1, 50.5, 1, 38.4], [8, 52.4, 4, 36.2], [14.6, 51.6, 9, 36.8], [15.6, 46, 13.8, 40.5]],
+    oblF: [[12.2, 36, 7.0, 38], [12.4, 26, 6.6, 31], [10.6, 16, 5.6, 22], [7.8, 12.6, 5.6, 14]],
+    latF: [[13.2, 49, 11.2, 46], [16.0, 44, 12.6, 38], [14.8, 34, 11, 30], [11.4, 24, 9.6, 26]],
+    gluF: [[10.2, 13, 9.6, 6], [14.0, 11, 11, 4.8], [14.6, 4, 11.4, 2.6]],
+    trapS: [[-2.8, 61.5, -2.2, 59], [-6.5, 58, -4.2, 54], [-9.6, 50, -6.4, 48], [-10.4, 42, -9.0, 42]],
+    latS: [[-9.2, 50, -5.6, 48], [-10.8, 42, -6.4, 40], [-9.8, 30, -6.0, 30], [-7.4, 22, -5.4, 24]],
+    erecS: [[-5.6, 50, -3.2, 49], [-6.4, 36, -3.6, 36], [-5.8, 20, -3.4, 20], [-4.4, 13, -3.2, 14]],
+    pecS: [[5.5, 51.5, 3.6, 49.5], [10.4, 48, 5.4, 45.5], [11.8, 42, 6.0, 41], [10.6, 37, 6.4, 37.6]],
+    absS: [[5.4, 34, 3.6, 34], [8.6, 32, 4, 30], [8.8, 20, 4, 20], [8.0, 12, 3.6, 12.4]],
+    gluS: [[-3, 14, -2.6, 8], [-8.4, 12.6, -5.6, 8.4], [-11.6, 7, -7.4, 5.6], [-10.4, 1.6, -6.4, 1.4]],
+    absRows: [32, 25.4, 18.8, 12.6], absCu: 3.1, absHw: 2.7, kU: 1, kL: 1, kA: 1
+  };
+  // Mujer: cadera y glúteo más amplios, cintura marcada, hombros y pecho más pequeños, extremidades más finas
+  const ANF = Object.assign({}, AN, {
+    torsoS: [[0, 7.5, 9.5], [5, 9.2, 12.4], [12, 9.0, 11], [20, 7.4, 7.6], [28, 8.4, 7.4], [36, 10.8, 8.2], [44, 11.8, 9.4], [52, 10.2, 9.8], [58, 7.6, 8.4], [62, 4.8, 5.2]],
+    torsoF: [[0, 11], [5, 13.6], [12, 14], [20, 10.2], [28, 8.4], [36, 9.8], [44, 11.8], [50, 13.2], [55, 14.6], [59, 11.5], [62, 4.6]],
+    pecF: [[1, 47.5, 1, 39], [7, 48.6, 2.6, 36.4], [12.2, 46.8, 6.5, 35.6], [12.8, 41.5, 10.5, 37.2]],
+    pecS: [[5, 48, 3.4, 46], [9.8, 44, 5.2, 42.4], [11.2, 38.5, 5.8, 38.2], [9.4, 35.5, 6, 35.8]],
+    gluS: [[-3, 15.5, -2.6, 8.4], [-9, 14.4, -6, 9], [-12.6, 8.2, -8, 6.2], [-11.4, 1.4, -7, 1.4]],
+    gluF: [[11, 14, 10, 6], [15.6, 11.5, 12, 4.8], [16, 3.6, 12.4, 2.4]],
+    absRows: [30.4, 24.4, 18.4, 12.6], absCu: 2.7, absHw: 2.3, kU: .86, kL: .92, kA: .8
+  });
+
+  // ----- Degradados y filtro (solo se inyectan cuando el personaje es anatómico) -----
+  function anatDefs(u) {
+    const rg = (id, stops, cx, cy, r) => `<radialGradient id="${id}${u}" cx="${cx || .36}" cy="${cy || .3}" r="${r || .82}">${stops.map(s => `<stop offset="${s[0]}" stop-color="${s[1]}"/>`).join('')}</radialGradient>`;
+    return rg('aM', [[0, '#f7f9fd'], [.3, '#d5dce7'], [.66, '#9ea8b8'], [1, '#5d6777']])        // plata metálico (músculo en reposo)
+      + rg('aMf', [[0, '#c7cfda'], [.4, '#99a2b1'], [.8, '#697381'], [1, '#434b57']])             // ídem, lado lejano
+      + rg('aA', [[0, '#ff9c9c'], [.26, '#ff2f3c'], [.68, '#c8001c'], [1, '#68000f']])            // carmesí (principal)
+      + rg('aAf', [[0, '#ea6c74'], [.3, '#d11a2a'], [.74, '#98001a'], [1, '#50000c']])
+      + rg('aS', [[0, '#ffe2e5'], [.34, '#ff9ca8'], [.74, '#d9566a'], [1, '#8f2a3e']])            // rojo suave (secundario)
+      + rg('aSf', [[0, '#e9b2b8'], [.4, '#da7a8c'], [.8, '#a8465a'], [1, '#6a2434']])
+      + rg('aB', [[0, '#8b95a4'], [.6, '#545d6a'], [1, '#2e343e']], .5, .4, .9)                   // titanio oscuro (estructura)
+      + rg('aBf', [[0, '#6c7583'], [.6, '#404751'], [1, '#232931']], .5, .4, .9)
+      + rg('aH', [[0, '#fbfcff'], [.28, '#dbe1ea'], [.68, '#a3adbb'], [1, '#606a79']], .38, .3, .86) // cabeza / manos / articulaciones
+      + `<filter id="aG${u}" x="-45%" y="-45%" width="190%" height="190%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="3"/></filter>`;
+  }
+
+  // Un músculo: contorno con degradado + fibras sutiles; si es principal, su forma alimenta el resplandor
+  function muscleSvg(rib, id, far, A, fib) {
+    const S = A.S, lv = mlevel(S, id), u = A.u;
+    const d = ribPath(rib);
+    const fill = (lv === 2 ? 'aA' : lv === 1 ? 'aS' : 'aM') + (far ? 'f' : '') + u;
+    let s = `<path d="${d}" fill="url(#${fill})" stroke="${lv === 2 ? '#74000f' : lv === 1 ? '#a43a4c' : '#59636f'}" stroke-width=".7" stroke-linejoin="round"/>`;
+    if (fib && !S.lite) s += `<path d="${ribFibers(rib, fib)}" fill="none" stroke="${lv === 2 ? 'rgba(88,0,14,.5)' : lv === 1 ? 'rgba(120,30,50,.42)' : 'rgba(40,50,68,.36)'}" stroke-width=".55" stroke-linecap="round"/>`;
+    if (lv === 2) A.glow.push(d);
+    return s;
+  }
+  const baseSvg = (rib, far, A) => `<path d="${ribPath(rib)}" fill="url(#aB${far ? 'f' : ''}${A.u})" stroke="#2b313a" stroke-width=".8" stroke-linejoin="round"/>`;
+  const capSvg = (c, r, A) => circ(c, r, `url(#aH${A.u})`, ' stroke="#4d5663" stroke-width=".7"') + circ(c, r * .38, A.S.acc);
+
+  function anLeg(J, k, far, S, T, A) {
+    const Hp = J['H' + k], K = J['K' + k], An = J['A' + k], F = J['F' + k], fr = J.front, m = fr ? (k === 'L' ? -1 : 1) : 1, kk = T.kL;
+    let s = baseSvg(boneRib(Hp, K, prof(fr ? T.thighF : T.thighS), m, kk), far, A) + baseSvg(boneRib(K, An, prof(fr ? T.shinF : T.shinS), m, kk), far, A);
+    const mu = (a, b, st, id, f) => muscleSvg(boneRib(a, b, st, m, kk), id, far, A, f);
+    if (fr) {
+      s += mu(Hp, K, T.hamF, 'isquios', 1) + mu(Hp, K, T.hamFi, 'isquios', 1) + mu(K, An, T.gastroOF, 'pantorrillas', 2) + mu(K, An, T.gastroIF, 'pantorrillas', 2)
+        + mu(K, An, T.tibF, 'tibial', 1) + mu(Hp, K, T.vlF, 'cuadriceps', 3) + mu(Hp, K, T.vmF, 'cuadriceps', 2) + mu(Hp, K, T.rfF, 'cuadriceps', 2);
+      s += `<ellipse cx="${f1(F[0])}" cy="${f1(F[1])}" rx="4.4" ry="2.7" fill="url(#aH${A.u})" stroke="#4d5663" stroke-width=".6"/>`;
+    } else {
+      s += mu(Hp, K, T.hamS, 'isquios', 3) + mu(K, An, T.calfS, 'pantorrillas', 3) + mu(K, An, T.soleusS, 'pantorrillas', 1) + mu(K, An, T.tibS, 'tibial', 1) + mu(Hp, K, T.quadS, 'cuadriceps', 3);
+      s += `<path d="${ribPath(boneRib(An, F, [[-.3, 2.6, -3.2], [.15, 3.8, -3.2], [.6, 3.2, -2.6], [1, 1.8, -1.8]], 1, 1))}" fill="url(#aH${A.u})" stroke="#4d5663" stroke-width=".6" stroke-linejoin="round"/>`;
+    }
+    return s + capSvg(K, 3.5 * kk, A);
+  }
+
+  function anArm(J, k, far, S, T, A) {
+    const Sh = J['S' + k], E = J['E' + k], Wr = J['W' + k], fr = J.front, m = fr ? (k === 'L' ? -1 : 1) : 1, kk = T.kA;
+    let s = baseSvg(boneRib(Sh, E, prof(fr ? T.armF : T.armS), m, kk), far, A) + baseSvg(boneRib(E, Wr, prof(fr ? T.foreF : T.foreS), m, kk), far, A);
+    const mu = (a, b, st, id, f) => muscleSvg(boneRib(a, b, st, m, kk), id, far, A, f);
+    if (fr) s += mu(Sh, E, T.triF, 'triceps', 2) + mu(E, Wr, T.foreMF, 'antebrazo', 2) + mu(Sh, E, T.bicF, 'biceps', 2) + mu(Sh, E, T.delF, 'hombros', 3);
+    else s += mu(Sh, E, T.triS, 'triceps', 2) + mu(E, Wr, T.extS, 'antebrazo', 1) + mu(E, Wr, T.flexS, 'antebrazo', 2) + mu(Sh, E, T.bicS, 'biceps', 2) + mu(Sh, E, T.delS, 'hombros', 3);
+    s += capSvg(E, 3.1 * kk, A);
+    return s + `<ellipse cx="${f1(Wr[0])}" cy="${f1(Wr[1])}" rx="${f1(S.handR)}" ry="${f1(S.handR * 1.12)}" fill="url(#aH${A.u})" stroke="#4d5663" stroke-width=".6"/>`;
+  }
+
+  function anTorso(J, p, S, T, A) {
+    const { tdir, perp } = torsoFrame(p), front = J.front, P = J.P, ku = T.kU, TL = L.T;
+    const mu = (st, sg, id, f) => muscleSvg(torsoRib(P, tdir, perp, st, sg, ku), id, false, A, f);
+    const R = (rows, fn) => rows.map(fn);
+    let s = '';
+    if (front) {
+      s += baseSvg(torsoRib(P, tdir, perp, R(T.torsoF, r => [r[1], r[0], -r[1], r[0]]), 1, 1), false, A);
+      for (const sg of [-1, 1]) {
+        s += mu(T.latF, sg, 'espalda', 2) + mu(T.gluF, sg, 'gluteos', 2) + mu(T.trapF, sg, 'espalda', 2) + mu(T.oblF, sg, 'abdomen', 2);
+      }
+      // recto abdominal: bloques con intersecciones tendinosas
+      for (const v of T.absRows) for (const sg of [-1, 1]) {
+        const cu = T.absCu * sg, hw = T.absHw, hh = 2.6;
+        s += muscleSvg(torsoRib(P, tdir, perp, [[cu - hw, v + hh, cu + hw, v + hh], [cu - hw, v - hh, cu + hw, v - hh]], 1, ku), 'abdomen', false, A, 0);
+      }
+      for (const sg of [-1, 1]) s += mu(T.pecF, sg, 'pecho', 3);
+      s += segc(torsoRib(P, tdir, perp, [[0, 36.5, 0, 36.5]], 1, 1).e1[0], torsoRib(P, tdir, perp, [[0, 10, 0, 10]], 1, 1).e1[0], .8, 'rgba(40,50,68,.45)');
+    } else {
+      s += baseSvg(torsoRib(P, tdir, perp, R(T.torsoS, r => [r[1], r[0], -r[2], r[0]]), 1, 1), false, A);
+      s += mu(T.gluS, 1, 'gluteos', 3) + mu(T.erecS, 1, 'espalda', 2) + mu(T.latS, 1, 'espalda', 3) + mu(T.trapS, 1, 'espalda', 2) + mu(T.absS, 1, 'abdomen', 2) + mu(T.pecS, 1, 'pecho', 3);
+      for (const v of [28, 22.5, 17]) s += segc(torsoRib(P, tdir, perp, [[4.4, v, 4.4, v]], 1, 1).e1[0], torsoRib(P, tdir, perp, [[8.2, v, 8.2, v]], 1, 1).e1[0], .7, 'rgba(40,50,68,.5)');
+    }
+    return s;
+  }
+
+  function anHead(J, p, S, tm, A) {
+    const c = J.head, r = S.hr, front = J.front, u = A.u;
+    const ht = rad(180 - p.t + p.hd);
+    const up = [Math.sin(ht), Math.cos(ht)], fw = [-up[1], up[0]];
+    const Q = (a, b) => [c[0] + fw[0] * a * r + up[0] * b * r, c[1] + fw[1] * a * r + up[1] * b * r];
+    const ang = Math.atan2(up[0], -up[1]) * 180 / Math.PI;
+    const top = add(J.neck, up, L.NECK + r * .55);
+    let s = baseSvg(boneRib(J.neck, top, front ? [[0, 5.6, -5.6], [.6, 4.4, -4.4], [1, 3.9, -3.9]] : [[0, 4.8, -5.8], [.6, 3.9, -4.9], [1, 3.6, -4.3]], 1, S.fem ? .9 : 1), false, A);
+    // esternocleidomastoideos (vista frontal) / línea del cuello (perfil)
+    if (front) s += segc(Q(-.62, -.95), add(J.neck, up, 0), 1.1, 'rgba(210,218,230,.5)') + segc(Q(.62, -.95), add(J.neck, up, 0), 1.1, 'rgba(210,218,230,.5)');
+    else s += segc(Q(-.4, -.95), add(J.neck, perp0(up), 1), .9, 'rgba(210,218,230,.4)');
+    if (S.fem) s += front
+      ? ellip(Q(1.02, .12), r * .24, r * .62, '#6c7685', ang + 22)
+      : `<path d="M${pt(Q(-.8, .6))} Q${pt(Q(-2.0, .55 + Math.sin(tm / 300) * .15))} ${pt(Q(-1.75, -.95))}" fill="none" stroke="#6c7685" stroke-width="${f1(r * .46)}" stroke-linecap="round"/>`;
+    s += `<ellipse cx="${f1(c[0])}" cy="${f1(c[1])}" rx="${f1(r * .86)}" ry="${f1(r * 1.1)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".9" transform="rotate(${f1(ang)} ${f1(c[0])} ${f1(c[1])})"/>`;
+    // planos del rostro: cuencas, nariz y mandíbula (sutiles)
+    if (front) {
+      s += ellip(Q(-.34, .08), r * .17, r * .09, '#5d6777', ang) + ellip(Q(.34, .08), r * .17, r * .09, '#5d6777', ang)
+        + segc(Q(0, .02), Q(0, -.34), 1.1, '#7a8493') + segc(Q(-.24, -.58), Q(.24, -.58), 1.1, '#7a8493')
+        + `<path d="M${pt(Q(-.74, -.2))} Q${pt(Q(0, -1.2))} ${pt(Q(.74, -.2))}" fill="none" stroke="rgba(60,70,90,.45)" stroke-width=".9"/>`;
+    } else {
+      s += ellip(Q(.5, .08), r * .2, r * .1, '#5d6777', ang) + segc(Q(.86, -.04), Q(.98, -.24), 1.1, '#7a8493') + segc(Q(.42, -.58), Q(.8, -.52), 1.1, '#7a8493')
+        + circ(Q(-.08, -.02), r * .16, '#8f99a8') + `<path d="M${pt(Q(-.5, -.6))} Q${pt(Q(.1, -1.12))} ${pt(Q(.78, -.55))}" fill="none" stroke="rgba(60,70,90,.45)" stroke-width=".9"/>`;
+    }
+    return s;
+  }
+  const perp0 = up => [up[1], -up[0]];
+
+  // Ensamble completo del cuerpo anatómico (mismo orden de capas que los demás modelos)
+  function drawAnatomy(J, p, S, tm, A) {
+    const T = S.fem ? ANF : AN;
+    let b;
+    if (J.front) b = anLeg(J, 'L', false, S, T, A) + anLeg(J, 'R', false, S, T, A) + anTorso(J, p, S, T, A) + anHead(J, p, S, tm, A) + anArm(J, 'L', false, S, T, A) + anArm(J, 'R', false, S, T, A);
+    else b = anArm(J, 'L', true, S, T, A) + anLeg(J, 'L', true, S, T, A) + anTorso(J, p, S, T, A) + anLeg(J, 'R', false, S, T, A) + anHead(J, p, S, tm, A) + anArm(J, 'R', false, S, T, A);
+    // Resplandor de los músculos principales: copia desenfocada (feGaussianBlur) DEBAJO del cuerpo.
+    // Así se ve sobre fondo claro y oscuro, y no aplana el sombreado de los músculos.
+    if (A.glow.length) {
+      const halo = S.lite
+        ? A.glow.map(d => `<path d="${d}" fill="none" stroke="#ff2a3a" stroke-width="5" stroke-linejoin="round" opacity="${f1(.18 + .2 * A.pu)}"/>`).join('')
+        : `<g filter="url(#aG${A.u})" opacity="${f1(.55 + .4 * A.pu)}">${A.glow.map(d => `<path d="${d}" fill="#ff2233"/>`).join('')}</g>`;
+      b = halo + b;
+    }
+    return b;
   }
 
   // ---------- Guía de postura: marcadores luminosos y flechas de movimiento ----------
@@ -778,6 +926,7 @@
       if (anim) this.animKey = ANIMS[anim] ? anim : FALLBACK_ANIM;
       this.S = resolveSpec(this.charId, this.accentId);
       applyVars(this.el, this.S);
+      if (this.S.kind === 'anatomy') this._anatDefs();
       this._prepare();
       this.t0 = performance.now();
       this._render(0);
@@ -821,6 +970,13 @@
       this.tween = { from: this.lastP || lerpPose(a.kf[0], a.kf[0], 0), to: lerpPose(k, k, 0), t0: performance.now() };
       this.hold = which;
     }
+    // Degradados y filtro de resplandor: solo se crean cuando el personaje es anatómico
+    _anatDefs() {
+      if (this.hasAnat) return;
+      this.svg.querySelector('defs').insertAdjacentHTML('beforeend', anatDefs(this.uid));
+      this.glowFe = this.svg.querySelector('#aG' + this.uid + ' feGaussianBlur');
+      this.hasAnat = true;
+    }
     setGuide(marks) { this.guide = marks && marks.length ? { marks } : null; }
     _render(time) {
       const a = ANIMS[this.animKey], S = this.S, n = a.kf.length, now = performance.now();
@@ -853,7 +1009,13 @@
       }
       this.svgScene.innerHTML = sc;
       let b = `<ellipse cx="${f1(J.P[0])}" cy="${GROUND}" rx="${30 - Math.min(p.j, 20)}" ry="4" class="av-shadow"/>`;
-      if (J.front) {
+      if (S.kind === 'anatomy') {
+        const pu = .5 + .5 * Math.sin(now / 260);
+        S.lite = !!this.lite;
+        if (this.glowFe) this.glowFe.setAttribute('stdDeviation', f1(S.lite ? 2 : 2.2 + 2 * pu));   // resplandor pulsante
+        b += drawAnatomy(J, p, S, tm, { S, u: this.uid, glow: [], pu });
+        this.lastRender = now;
+      } else if (J.front) {
         b += drawTail(J, p, S, tm) + drawLimb(J, 'L', false, S) + drawLimb(J, 'R', false, S) + drawTorso(J, p, S) + drawHead(J, p, S, tm) + drawArm(J, 'L', false, S) + drawArm(J, 'R', false, S);
       } else {
         b += drawArm(J, 'L', true, S) + drawLimb(J, 'L', true, S) + drawTail(J, p, S, tm) + drawTorso(J, p, S) + drawLimb(J, 'R', false, S) + drawHead(J, p, S, tm) + drawArm(J, 'R', false, S);
@@ -873,8 +1035,14 @@
       cancelAnimationFrame(this.raf); clearTimeout(this.to);
       this._schedule();                                    // reprograma SIEMPRE primero
       const now = performance.now();
+      const prev = this.lastFrame;
       this.lastFrame = now;
       if (this.paused || document.hidden) return;
+      if (this.S.kind === 'anatomy') {   // solo anatómicos: ~30 fps y modo ligero si el equipo va lento
+        const dt = now - prev; this.dtEma = this.dtEma ? this.dtEma * .92 + dt * .08 : dt;
+        if (!this.lite && this.dtEma > 60) this.lite = true;
+        if (now - (this.lastRender || 0) < 30) return;
+      }
       try {
         if (this.cycleList && now - this.cycleT > this.cycleMs) this._cycleTo((this.cycleI + 1) % this.cycleList.length);
         this._render(Math.max(0, now - this.t0));

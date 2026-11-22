@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.2.0'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.3.0'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -1253,8 +1253,6 @@ Usa "reps" o "segundos" (el otro en null).`;
   // ---------- Service Worker ----------
   function registerSW() {
     if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
-    // Solo recarga al ACTUALIZAR (ya había un Service Worker); en la primera instalación no hace falta
-    const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register('sw.js').then(reg => {
       const notify = w => {
         const b = $('#banner');
@@ -1269,7 +1267,13 @@ Usa "reps" o "segundos" (el otro en null).`;
       });
     }).catch(() => { /* sin SW */ });
     let reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloaded || P.active) return; reloaded = true; location.reload(); });
+    // Recarga solo al ACTUALIZAR (había un controlador previo): se decide en el momento del cambio, no al cargar
+    let prevController = navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const wasControlled = !!prevController; prevController = navigator.serviceWorker.controller;
+      if (!wasControlled || reloaded || P.active) return;
+      reloaded = true; location.reload();
+    });
   }
 
   // ---------- Arranque ----------
