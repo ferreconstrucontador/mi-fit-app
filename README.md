@@ -86,10 +86,25 @@ Equipo `escaladora` ("Escaladora vertical / Stepper", categoría *Cardio* de Mi 
 
 ## 🛠️ Especificaciones del equipo y herramientas extra (Mi Gimnasio)
 
-- **Detalle por equipo:** al marcar un equipo aparece un campo opcional para anotar su detalle real (por ejemplo `5-40 lbs`, `Kit 20 kg convertible`, `3 ángulos 35°-55° / 3 resortes`), con chips de sugerencias. Se guarda en `localStorage` → `mifit_equipo_specs` (`{ idEquipo: "texto" }`) y aparece como etiqueta ⚙️ en los ejercicios que usan ese equipo y en la voz/consejo del entrenamiento.
+- **Detalle por equipo (etiquetas acumulables, v1.5.1):** al marcar un equipo puedes agregar varias etiquetas (por ejemplo `5-40 lbs`, `Ajustables`, `3 ángulos 35°-55°`). Cada una es una píldora con `×` para quitarla; se agregan con el botón `+`, con Enter o al salir del campo, y los chips de sugerencia **suman** una píldora nueva sin sobrescribir (sin duplicados exactos, máximo 8, aviso "✓ Guardado"). Se guarda en `mifit_equipo_specs` como `{ idEquipo: ["etiqueta", ...] }`. Un texto de la v1.5.0 (`{ idEquipo: "texto" }`) se muestra como primera etiqueta y no se reescribe hasta que lo edites. Las etiquetas se unen con comas en la insignia ⚙️ de la rutina, en el prompt de Gemini y en el respaldo `.json` (`equipoSpecsFormato: "coma"`; al restaurar se separan de nuevo).
 - **➕ Agregar equipo o herramienta extra:** nombre, especificación opcional y *compatibilidad de movimiento* (Peso corporal / Tren inferior, Mancuernas / Carga libre, Ligas / Resistencia, Cardio / Stepper, Tren superior, Core, Movilidad u Otro). Se guarda en `mifit_equipo_custom` (`[{ id, n, spec, cat, on }]`), se puede activar/desactivar o eliminar, aparece como etiqueta 🛠️ en los ejercicios compatibles y el generador la favorece ligeramente. Las categorías están en `COMPAT` (`js/ejercicios.js`).
 - **Generador y Gemini:** el generador offline considera la escaladora y las herramientas extra activas. El prompt de Gemini incluye el equipo con sus especificaciones y las herramientas extra, pide elegir ejercicios solo por id del catálogo y mencionar en la nota el peso, ángulo o resistencia exacta.
 - **Datos:** ambas claves viajan en el respaldo `.json` (también como campos `equipoSpecs` y `equipoCustom`) y se borran con "Borrar todos mis datos". Las claves existentes no cambian.
+
+## 🔥 Gasto calórico (v1.5.1)
+
+`kcal = MET ajustado × peso (kg) × (segundos activos ÷ 3600)`, calculado por ejercicio con su tiempo activo real (los descansos no cuentan; si terminas antes, cuenta la serie en curso). Peso de **Perfil** (68 kg si está vacío).
+
+| Tipo | MET |
+|---|---|
+| Calentamiento, enfriamiento, movilidad | 2.8 |
+| Fuerza con peso corporal, ligas, accesorios ligeros | 5.0 |
+| Fuerza con carga libre (mancuernas, barra, kettlebell) | 5.8 (×1.08 si anotaste etiquetas de ese equipo) |
+| Escaladora ritmo constante / paso lateral | 7.5 |
+| Escaladora HIIT / paso profundo | 9.5 |
+| Otro cardio intenso (saltos, burpees, cuerda) | 8.5 |
+
+Multiplicador por RPE: Fácil ×0.90 · Justo ×1.00 · Muy pesado ×1.15. El resumen muestra el total redondeado con la nota "Estimado según tu peso, tiempo activo e intensidad"; en `MiFitDB` (`workouts`) se guarda `kcal`, `kcalPeso` y `kcalDet` (desglose por ejercicio) para las gráficas de Progreso. Los entrenamientos anteriores no se modifican.
 
 ## 🔍 Catálogo de Ejercicios (visor)
 

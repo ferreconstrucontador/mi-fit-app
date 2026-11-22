@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.5.0'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.5.1'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -288,10 +288,49 @@
   const customActive = () => S.custom.filter(c => c.on);
   const compatOf = id => DB.COMPAT_BY_ID[id] || DB.COMPAT_BY_ID.general;
   const customFor = e => S.custom.find(c => c.on && compatOf(c.cat).test(e));
+  // ---------- Etiquetas acumulables por equipo (v1.5.1) ----------
+  // Formato guardado en mifit_equipo_specs: { idEquipo: ["etiqueta", ...] }. Un texto simple de la v1.5.0 se
+  // respeta como primera etiqueta y NO se reescribe hasta que el usuario edite ese equipo.
+  const specTags = id => { const v = S.specs[id]; return Array.isArray(v) ? v.filter(Boolean) : (v ? [String(v)] : []); };
+  const specText = id => specTags(id).join(', ');
+  const equipoItem = id => DB.EQUIPO.flatMap(c => c.items).find(i => i.id === id);
+  const SPEC_MAX = 8;
+  function specBoxHTML(i) {
+    const tags = specTags(i.id);
+    const pills = tags.map((t, n) => `<span class="eq-tag">${esc(t)}<button type="button" class="eq-tag-x" data-tagdel="${i.id}" data-n="${n}" aria-label="Quitar ${esc(t)}">×</button></span>`).join('');
+    const sug = (i.sug || []).map(t => `<button type="button" class="eq-chip ${tags.includes(t) ? 'used' : ''}" data-sug="${i.id}">${esc(t)}</button>`).join('');
+    return `<div class="eq-tags">${pills}</div>`
+      + `<div class="eq-add"><input type="text" data-spec="${i.id}" maxlength="40" enterkeyhint="done" placeholder="${tags.length ? 'Otro detalle…' : 'Detalle (opcional)'}" aria-label="Agregar detalle de ${esc(i.n)}" autocomplete="off"><button type="button" class="eq-plus" data-tagadd="${i.id}" aria-label="Agregar detalle">+</button></div>`
+      + (sug ? `<div class="eq-sug">${sug}</div>` : '') + '<span class="eq-ok" hidden></span>';
+  }
+  // Agrega una o varias etiquetas (separadas por coma). Sin duplicados exactos; máximo SPEC_MAX por equipo.
+  function addSpecTags(id, raw, keepFocus) {
+    const nuevos = String(raw || '').split(',').map(t => specClean(t, 40)).filter(Boolean);
+    if (!nuevos.length) return 0;
+    const tags = specTags(id).slice(); let n = 0, lleno = false;
+    for (const t of nuevos) { if (tags.includes(t)) continue; if (tags.length >= SPEC_MAX) { lleno = true; continue; } tags.push(t); n++; }
+    if (n) { S.specs[id] = tags; saveSpecs(); }
+    refreshSpec(id, lleno ? 'max' : (n ? 'ok' : 'dup'), keepFocus);   // 'max' avisa aunque se haya guardado lo que cabía
+    return n;
+  }
+  function removeSpecTag(id, n) {
+    const tags = specTags(id).slice(); tags.splice(n, 1);
+    if (tags.length) S.specs[id] = tags; else delete S.specs[id];
+    saveSpecs(); refreshSpec(id, 'del', false);
+  }
+  function refreshSpec(id, estado, keepFocus) {
+    const box = $(`[data-eqspec="${id}"]`, $('#equipoLista')), it = equipoItem(id); if (!box || !it) return;
+    const hadFocus = box.contains(document.activeElement);
+    box.innerHTML = specBoxHTML(it);
+    if (keepFocus || hadFocus) $('[data-spec]', box).focus();      // mantiene el teclado y los chips visibles
+    const ok = $('.eq-ok', box), msg = { ok: '✓ Guardado', dup: 'Ya estaba agregada', max: `Máximo ${SPEC_MAX} etiquetas`, del: '' }[estado];
+    if (msg) { ok.textContent = msg; ok.className = 'eq-ok ' + estado; ok.hidden = false; setTimeout(() => { if (ok.isConnected) ok.hidden = true; }, 1400); }
+  }
+
   // Detalles (peso, ángulo, resistencia) que aplican a un ejercicio: del equipo marcado y de la herramienta extra vinculada
   function specList(e) {
     const eff = equipoEfectivo(), out = [];
-    e.eq.forEach(q => { if (eff.includes(q) && S.specs[q]) out.push({ t: `${DB.EQUIPO_NOMBRE[q]}: ${S.specs[q]}`, tool: false }); });
+    e.eq.forEach(q => { if (eff.includes(q) && specTags(q).length) out.push({ t: `${DB.EQUIPO_NOMBRE[q]}: ${specText(q)}`, tool: false }); });
     const c = customFor(e); if (c) out.push({ t: `${c.n}${c.spec ? ': ' + c.spec : ''}`, tool: true });
     return out;
   }
@@ -305,8 +344,7 @@
       const on = i.fixed || sel.includes(i.id);
       const card = `<button class="eq-card ${on ? 'on' : ''} ${i.fixed ? 'fixed' : ''}" data-id="${i.id}" aria-pressed="${on}" ${i.fixed ? 'disabled' : ''}><span class="ei">${i.i}</span><b>${i.n}</b><small>${i.fixed ? fixedTxt || i.d : i.d}</small></button>`;
       if (!withSpecs) return card;
-      const sug = (i.sug || []).length ? `<div class="eq-sug">${i.sug.map(t => `<button type="button" class="eq-chip" data-sug="${i.id}">${esc(t)}</button>`).join('')}</div>` : '';
-      const spec = on && !i.fixed ? `<div class="eq-spec"><input type="text" data-spec="${i.id}" value="${esc(S.specs[i.id] || '')}" maxlength="80" placeholder="Detalle (opcional)" aria-label="Detalle de ${esc(i.n)}" autocomplete="off">${sug}</div>` : '';
+      const spec = on && !i.fixed ? `<div class="eq-spec" data-eqspec="${i.id}">${specBoxHTML(i)}</div>` : '';
       return `<div class="eq-item">${card}${spec}</div>`;
     }).join('') + '</div>').join('');
   }
@@ -347,16 +385,40 @@
   }
   function bindGimnasio() {
     const lista = $('#equipoLista');
-    const applyChip = chip => { const id = chip.dataset.sug, inp = $(`[data-spec="${id}"]`, lista); if (!inp) return; inp.value = chip.textContent; S.specs[id] = specClean(chip.textContent); saveSpecs(); inp.focus(); };
-    lista.addEventListener('pointerdown', e => { const chip = e.target.closest('.eq-chip'); if (chip) { e.preventDefault(); applyChip(chip); } });   // no quita el foco del campo
-    lista.addEventListener('input', e => {
+    // Etiquetas: chips y "+" actúan al pulsar (sin quitar el foco del campo); Enter/Listo también agrega
+    const pulsar = el => {
+      const chip = el.closest('.eq-chip'); if (chip) { addSpecTags(chip.dataset.sug, chip.textContent, true); return true; }
+      const plus = el.closest('.eq-plus'); if (plus) { const inp = $(`[data-spec="${plus.dataset.tagadd}"]`, lista); addSpecTags(plus.dataset.tagadd, inp ? inp.value : '', true); return true; }
+      return false;
+    };
+    lista.addEventListener('mousedown', e => { if (e.target.closest('.eq-chip, .eq-plus')) e.preventDefault(); });
+    lista.addEventListener('pointerdown', e => { if (e.target.closest('.eq-chip, .eq-plus')) { e.preventDefault(); pulsar(e.target); } });
+    lista.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
       const inp = e.target.closest('[data-spec]'); if (!inp) return;
-      const v = specClean(inp.value); if (v) S.specs[inp.dataset.spec] = v; else delete S.specs[inp.dataset.spec];
-      saveSpecs();
+      e.preventDefault(); addSpecTags(inp.dataset.spec, inp.value, true);
+    });
+    lista.addEventListener('change', e => {   // al salir del campo no se pierde lo escrito (con retardo para no mover el contenido bajo el dedo)
+      const inp = e.target.closest('[data-spec]'); if (!inp) return;
+      setTimeout(() => { if (inp.isConnected && inp.value.trim()) addSpecTags(inp.dataset.spec, inp.value, false); }, 350);
+    });
+    // Las sugerencias se abren solo con el foco en el campo (o en una sugerencia); tocar una × no mueve el contenido bajo el dedo
+    let cierre = null;
+    lista.addEventListener('focusin', e => {
+      const el = e.target.closest('[data-spec], .eq-chip'); if (!el) return;
+      clearTimeout(cierre);
+      $$('.eq-spec.open', lista).forEach(x => { if (x !== el.closest('.eq-spec')) x.classList.remove('open'); });
+      el.closest('.eq-spec').classList.add('open');
+    });
+    lista.addEventListener('focusout', e => {
+      const el = e.target.closest('[data-spec], .eq-chip'), box = el && el.closest('.eq-spec'); if (!box) return;
+      clearTimeout(cierre);
+      cierre = setTimeout(() => { const ac = document.activeElement; if (!(box.contains(ac) && ac.closest('[data-spec], .eq-chip'))) box.classList.remove('open'); }, 350);
     });
     bindExtras();
     lista.addEventListener('click', e => {
-      const chip = e.target.closest('.eq-chip'); if (chip) { applyChip(chip); return; }
+      const x = e.target.closest('.eq-tag-x'); if (x) { removeSpecTag(x.dataset.tagdel, +x.dataset.n); vibrate(10); return; }
+      if (e.detail === 0 && pulsar(e.target)) return;       // activación con teclado (en táctil ya actuó pointerdown)
       const b = e.target.closest('.eq-card'); if (!b || b.disabled) return;
       const id = b.dataset.id;
       S.equip = S.equip.includes(id) ? S.equip.filter(x => x !== id) : S.equip.concat(id);
@@ -532,7 +594,7 @@
       const ctx = { lv: DB.LEVEL[p.nivel] || 1, lesiones: p.lesiones || [], equipo: new Set(['corporal'].concat(equipoEfectivo())) };
       const lista = DB.EJERCICIOS.filter(e => DB.permitido(e, ctx));
       const catalogo = lista.map(e => `${e.id}|${e.n}|${e.p}|${e.f}|${e.t === 's' ? 'seg' : 'reps'}|${e.eq.join('+') || 'corporal'}`).join('\n');
-      const specsTxt = equipoEfectivo().filter(q => S.specs[q]).map(q => `${DB.EQUIPO_NOMBRE[q]}: ${S.specs[q]}`).join('; ');
+      const specsTxt = equipoEfectivo().filter(q => specTags(q).length).map(q => `${DB.EQUIPO_NOMBRE[q]}: ${specText(q)}`).join('; ');
       const customTxt = customActive().map(c => `${c.n}${c.spec ? ' (' + c.spec + ')' : ''} [compatibilidad: ${compatOf(c.cat).n}]`).join('; ');
       const progTxt = Object.entries(S.prog).slice(-15).map(([id, v]) => `${id}:${v.last}`).join(', ');
       const dia = DB.generarRutina(p, equipoEfectivo(), { indiceSesion: S.settings.sesion, duracion: S.settings.duracion }).diaNombre;
@@ -916,20 +978,46 @@ Usa "reps" o "segundos" (el otro en null).`;
     renderTime();
   }
 
+  // ---------- Gasto calórico (v1.5.1) ----------
+  // kcal = MET ajustado × peso (kg) × (segundos activos / 3600) × factor RPE, por ejercicio. Sin descansos.
+  const pesoKg = () => +S.profile.peso || 68;
+  const MET = { suave: 2.8, fuerza: 5.0, carga: 5.8, cardio: 8.5, cargaConDetalle: 1.08 };
+  const MET_ESCALADORA = { escaladora_constante: 7.5, escaladora_lateral: 7.5, escaladora_hiit: 9.5, escaladora_profundo: 9.5 };
+  const CARGA_LIBRE = ['mancuernas', 'barra', 'kettlebell'];
+  const CARDIO_SUAVE = ['marcha_rapida', 'gusano'];            // cardio sin impacto: se trata como fuerza ligera
+  const RPE_MULT = { facil: 0.9, justo: 1, pesado: 1.15 };
+  function metDe(e, block) {
+    if (MET_ESCALADORA[e.id]) return MET_ESCALADORA[e.id];
+    if (block === 'cal' || block === 'enf' || ['calentamiento', 'movilidad', 'estiramiento'].includes(e.p)) return MET.suave;
+    if ((e.p === 'cardio' && !CARDIO_SUAVE.includes(e.id)) || e.id === 'sentadilla_salto') return MET.cardio;
+    const carga = e.eq.filter(q => CARGA_LIBRE.includes(q));
+    if (carga.length) return MET.carga * (carga.some(q => specTags(q).length) ? MET.cargaConDetalle : 1);
+    return MET.fuerza;
+  }
+  function calcKcal(log, rpe, kg) {
+    const por = new Map();
+    for (const l of log) { const o = por.get(l.id) || { id: l.id, block: l.block, secs: 0 }; o.secs += l.secs; por.set(l.id, o); }
+    let total = 0; const det = [];
+    for (const o of por.values()) {
+      const met = metDe(DB.BY_ID[o.id], o.block), mult = RPE_MULT[rpe[o.id]] || 1, k = met * kg * (o.secs / 3600) * mult;
+      total += k; det.push({ id: o.id, secs: Math.round(o.secs), met: +met.toFixed(2), rpe: rpe[o.id] || null, kcal: +k.toFixed(1) });
+    }
+    return { kcal: Math.round(total), det };
+  }
   function logWork() {
     const st = curStep(); if (!st || st.type !== 'work') return;
-    const it = itemOf(st); const e = DB.BY_ID[it.id];
+    const it = itemOf(st);
     const secs = P.phaseMs / 1000;
     if (secs < 2) return;
-    P.log.push({ id: it.id, block: it.block, secs, reps: st.mode === 'reps' ? st.reps : 0 });
-    P.kcalW += e.met * (+S.profile.peso || 70) * secs / 3600;
+    P.log.push({ id: it.id, block: it.block, secs, reps: st.mode === 'reps' ? st.reps : 0 });   // tiempo activo real de la serie
   }
   function goStep(i) {
     if (P.guide === 'inspect') quietPause(P.inspectWasPaused);
-    if (i >= P.steps.length) { logWork(); finishWorkout(true); return; }
+    if (i >= P.steps.length) { finishWorkout(true); return; }   // el tiempo activo ya lo registró advance()
     P.idx = Math.max(0, i); enterStep();
   }
-  function advance() { logWork(); goStep(P.idx + 1); }
+  // Si la sesión ya terminó (p. ej. doble toque en la última serie) no se vuelve a contar el tiempo activo
+  function advance() { if (!P.active) return; logWork(); goStep(P.idx + 1); }
 
   function setPaused(v) {
     P.paused = v; $('#player').classList.toggle('paused', v);
@@ -1002,11 +1090,11 @@ Usa "reps" o "segundos" (el otro en null).`;
   async function finishWorkout(save, early = false) {
     const completo = !early;
     stopSession();
+    if (early) logWork();        // terminar antes: cuenta también el tiempo activo de la serie en curso
     const series = P.log.filter(l => l.block === 'pri').length;
     const totalSeries = P.log.length;
-    const kg = +S.profile.peso || 70;
-    const restSecs = Math.max(0, (P.sessionMs - P.workMs) / 1000);
-    const kcal = Math.round(P.kcalW + 1.5 * kg * restSecs / 3600);
+    const kg = pesoKg();
+    const { kcal, det } = calcKcal(P.log, P.rpe, kg);
     const mins = Math.max(1, Math.round(P.sessionMs / 60000));
     const ids = [...new Set(P.log.map(l => l.id))];
     let saved = false;
@@ -1014,7 +1102,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       applyRPE();
       const w = {
         fecha: new Date().toISOString(), dia: dayKey(), mins, secs: Math.round(P.sessionMs / 1000), series: totalSeries, seriesPrincipales: series,
-        kcal, ids, ejercicios: ids.map(i => DB.BY_ID[i].n), objetivo: S.profile.objetivo, diaNombre: P.routine.diaNombre, completo, fuente: P.routine.fuente
+        kcal, kcalPeso: kg, kcalDet: det, ids, ejercicios: ids.map(i => DB.BY_ID[i].n), objetivo: S.profile.objetivo, diaNombre: P.routine.diaNombre, completo, fuente: P.routine.fuente
       };
       await IDB.put('workouts', w);
       S.settings.sesion = (S.settings.sesion || 0) + 1; saveSettings();
@@ -1030,11 +1118,11 @@ Usa "reps" o "segundos" (el otro en null).`;
     // Reemplaza la capa del reproductor por el resumen (misma entrada de historial)
     swapOverlay('player', 'modal');
     $('#modal').hidden = false;
-    showSummary({ mins, totalSeries, series, kcal, ids, completo, ms: P.sessionMs });
+    showSummary({ mins, totalSeries, series, kcal, kg, ids, completo, ms: P.sessionMs });
   }
 
   function showSummary(r) {
-    const kg = +S.profile.peso || 70;
+    const kg = r.kg || pesoKg();
     const vasos = Math.max(2, Math.ceil((r.mins / 60) * 3) + 1);
     const prot = Math.round(kg * 0.3);
     const tipsObj = {
@@ -1052,6 +1140,7 @@ Usa "reps" o "segundos" (el otro en null).`;
         <div class="stat"><b>${r.kcal}</b><small>kcal estimadas</small></div>
         <div class="stat"><b>${r.ids.length}</b><small>Ejercicios</small></div>
       </div>
+      <p class="hint kcal-note">🔥 Estimado según tu peso (${kg} kg${+S.profile.peso ? '' : ', valor por defecto: registra el tuyo en Perfil'}), tiempo activo e intensidad.</p>
       <div class="tip-box">💧 <b>Hidratación:</b> toma ${vasos} vasos de agua (250 ml) en la próxima hora.<br>🥚 <b>Proteína:</b> ~${prot} g en las próximas 2 horas.<br>🛌 ${tipsObj[S.profile.objetivo] || ''}</div>
       ${Object.keys(P.rpe).length ? `<p class="hint">📈 Ajustamos ${Object.keys(P.rpe).length} ejercicio(s) según cómo te sentiste para tu próxima sesión.</p>` : '<p class="hint">💡 Tip: en los descansos toca “Fácil / Justo / Muy pesado” para que la app ajuste tu progresión.</p>'}
       <button class="btn btn-primary btn-lg" id="sumOk">📈 Ver mi progreso</button>`;
@@ -1164,7 +1253,10 @@ Usa "reps" o "segundos" (el otro en null).`;
     Object.values(K).forEach(k => { try { const v = localStorage.getItem(k); if (v != null) ls[k] = v; } catch (e) { /* */ } });
     // Por privacidad, la API Key NO se incluye en el respaldo
     if (ls[K.settings]) { try { const s = JSON.parse(ls[K.settings]); s.apiKey = ''; ls[K.settings] = JSON.stringify(s); } catch (e) { /* */ } }
-    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), entrenador: { personaje: S.settings.personaje, acento: S.settings.acento }, equipoSpecs: S.specs, equipoCustom: S.custom, localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
+    // Especificaciones: en el respaldo las etiquetas de cada equipo se unen con coma (compatible con el formato de texto de la v1.5.0)
+    const specsPlano = {}; Object.keys(S.specs).forEach(id => { const t = specText(id); if (t) specsPlano[id] = t; });
+    if (ls[K.specs] != null) ls[K.specs] = JSON.stringify(specsPlano);
+    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), entrenador: { personaje: S.settings.personaje, acento: S.settings.acento }, equipoSpecs: specsPlano, equipoSpecsFormato: 'coma', equipoCustom: S.custom, localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
   }
   const backupName = () => `mifitapp-respaldo-${dayKey()}.json`;
   async function exportBackup() {
@@ -1188,7 +1280,13 @@ Usa "reps" o "segundos" (el otro en null).`;
     const keepKey = LS.get(K.settings, {}).apiKey || S.settings.apiKey;
     Object.entries(data.localStorage || {}).forEach(([k, v]) => { if (k.startsWith('mifit_')) try { localStorage.setItem(k, v); } catch (e) { /* */ } });
     if (data.entrenador) { const st = LS.get(K.settings, {}); if (data.entrenador.personaje) st.personaje = data.entrenador.personaje; if (data.entrenador.acento) st.acento = data.entrenador.acento; LS.set(K.settings, st); }
-    if (data.equipoSpecs && typeof data.equipoSpecs === 'object' && !Array.isArray(data.equipoSpecs)) LS.set(K.specs, data.equipoSpecs);
+    if (data.equipoSpecs && typeof data.equipoSpecs === 'object' && !Array.isArray(data.equipoSpecs)) {
+      if (data.equipoSpecsFormato === 'coma') {      // respaldo v1.5.1+: las etiquetas unidas por coma vuelven a ser etiquetas separadas
+        const m = {};
+        for (const [id, t] of Object.entries(data.equipoSpecs)) { const tags = String(t).split(',').map(x => specClean(x, 40)).filter(Boolean); if (tags.length) m[id] = tags; }
+        LS.set(K.specs, m);
+      } else LS.set(K.specs, data.equipoSpecs);      // respaldo v1.5.0: texto simple (se respeta como primera etiqueta)
+    }
     if (Array.isArray(data.equipoCustom)) LS.set(K.custom, data.equipoCustom);
     if (keepKey) { const s = LS.get(K.settings, {}); s.apiKey = keepKey; LS.set(K.settings, s); }
     await IDB.clear('workouts'); await IDB.clear('metrics');
@@ -1420,7 +1518,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     ['¿Qué es la Vista Enfoque?', 'Toca 🎯 en el entrenamiento: fondo de estudio oscuro, series × repeticiones (o el tiempo) en grande y el avatar a gran tamaño. Tu elección se recuerda.'],
     ['¿Cómo veo un ejercicio sin esperar a la rutina?', 'En Perfil (o en Progreso → Manual) abre “🔍 Catálogo de Ejercicios”: busca por nombre, filtra por músculo o equipo, elige el avatar (prueba los anatómicos) y alterna Movimiento, Pose inicial (A) y Punto máximo (B). Es solo de consulta: no modifica tus datos.'],
     ['¿Para qué sirven los detalles del equipo y las herramientas extra?', 'En Mi Gimnasio, al marcar un equipo puedes anotar su detalle real (peso, ángulo, resistencia: “5-40 lbs”, “3 resortes”…). Aparece como etiqueta en tus ejercicios y se envía a la IA. Con “➕ Agregar equipo o herramienta extra” registras cosas nuevas (tobilleras, step…) y las vinculas a un tipo de movimiento. Todo va en tu respaldo.'],
-    ['¿Cómo se calculan las calorías?', 'Con valores MET de cada ejercicio × tu peso × tiempo real de trabajo, más el gasto en los descansos. Es una estimación.']
+    ['¿Cómo se calculan las calorías?', 'kcal = MET × tu peso × (segundos activos ÷ 3600), por ejercicio y sin contar los descansos. El MET depende del tipo: movilidad/calentamiento 2.8, fuerza con peso corporal o ligas 5.0, carga libre 5.8 (×1.08 si registraste detalles del equipo), cardio intenso 8.5 y escaladora 7.5 o 9.5. Luego se ajusta por cómo te sentiste: Fácil ×0.90, Justo ×1.00, Muy pesado ×1.15. Si no registras tu peso se usan 68 kg. Es una estimación.']
   ];
   function renderFAQ() { $('#faq').innerHTML = FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join(''); }
   function openManual() {
@@ -1508,6 +1606,6 @@ Usa "reps" o "segundos" (el otro en null).`;
   }
 
   // Exponer para depuración/pruebas
-  window.MiFitApp = { S, P, CAT, version: APP_VERSION, buildSteps, generarOffline };
+  window.MiFitApp = { S, P, CAT, version: APP_VERSION, buildSteps, generarOffline, calcKcal, metDe, pesoKg, specTags };
   document.addEventListener('DOMContentLoaded', init);
 })();

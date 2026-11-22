@@ -4,7 +4,7 @@
    (y APP_VERSION en js/app.js). Así los teléfonos descargan la nueva versión
    y la app muestra el aviso "Nueva versión disponible".
    ========================================================================= */
-const VERSION = '1.5.0';
+const VERSION = '1.5.1';
 const CACHE = `mifitapp-v${VERSION}`;
 const ASSETS = [
   './',
