@@ -127,7 +127,7 @@
       <div class="card">
         <h3>🔍 Explorar ejercicios</h3>
         <p class="hint">Mira cualquier ejercicio en movimiento, su pose inicial y su punto máximo, con los músculos iluminados, sin esperar a que salga en una rutina.</p>
-        <button class="btn btn-primary" id="btnCatalogo">🔍 Catálogo de Ejercicios (136)</button>
+        <button class="btn btn-primary" id="btnCatalogo">🔍 Catálogo de Ejercicios (140)</button>
       </div>
 
       <div class="card" id="cardRespaldo">
@@ -157,6 +157,21 @@
         <p class="hint" id="travelInfo"></p>
       </div>
       <div id="equipoLista"></div>
+
+      <!-- Herramientas extra definidas por el usuario (v1.5.0) -->
+      <div class="card extra-card" id="extraCard">
+        <h3>🛠️ Herramientas extra</h3>
+        <div id="exLista" class="ex-lista"></div>
+        <details class="ex-form" id="exForm">
+          <summary>➕ Agregar equipo o herramienta extra</summary>
+          <p class="hint">Registra lo que vayas comprando (tobilleras, step, discos…). Se muestra como nota en los ejercicios compatibles y se envía a la IA.</p>
+          <label class="field"><span>Nombre del equipo / herramienta</span><input type="text" id="exNombre" maxlength="40" placeholder="Ej. Tobilleras con peso 2 kg" autocomplete="off"></label>
+          <label class="field"><span>Especificación / carga (opcional)</span><input type="text" id="exSpec" maxlength="60" placeholder="Ej. 2 kg por tobillo" autocomplete="off"></label>
+          <label class="field"><span>Compatibilidad de movimiento</span><select id="exCat"></select></label>
+          <button class="btn btn-primary" id="btnExAdd">➕ Agregar</button>
+        </details>
+      </div>
+
       <div class="sticky-summary" id="equipoResumen"></div>
     </section>
 
@@ -345,7 +360,7 @@
       <div class="card">
         <h3>📘 Manual interactivo</h3>
         <button class="btn btn-secondary" id="btnTour2">🧭 Iniciar tour guiado (7 pasos)</button>
-        <button class="btn btn-ghost" id="btnCatalogo2">🔍 Catálogo de Ejercicios (136)</button>
+        <button class="btn btn-ghost" id="btnCatalogo2">🔍 Catálogo de Ejercicios (140)</button>
         <div id="faq" class="faq"></div>
       </div>
     </section>

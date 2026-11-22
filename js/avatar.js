@@ -110,7 +110,21 @@
     cobra: { dur: 4000, kf: [{ t: 65, hL: -90, hR: -90, sL: 20, eL: 20, sR: 20, eR: 20 }, { t: 50, hL: -90, hR: -90, sL: 0, sR: 0, hd: -10 }] },
     kneehug: { dur: 3600, kf: [{ t: 270, hL: 165, hR: 165, kL: 150, kR: 150, sL: 140, sR: 140, eL: 30, eR: 30 }, { t: 272, hL: 172, hR: 172, kL: 150, kR: 150, sL: 145, sR: 145, eL: 30, eR: 30 }] },
     dislocate: { view: 'f', dur: 3000, bandHands: true, kf: [{ sL: 30, sR: 30 }, { sL: 178, sR: 178 }] },
-    pullapart: { view: 'f', dur: 2000, bandHands: true, kf: [{ sL: 80, eL: -70, sR: 80, eR: -70 }, { sL: 90, sR: 90 }] }
+    pullapart: { view: 'f', dur: 2000, bandHands: true, kf: [{ sL: 80, eL: -70, sR: 80, eR: -70 }, { sL: 90, sR: 90 }] },
+    // Escaladora vertical / Stepper: pasos alternos con las manos en el manillar. El accesorio 'stepper'
+    // dibuja la máquina y sus pedales siguen exactamente a los pies del avatar.
+    stepper: { dur: 1400, stepper: true, kf: [
+      { t: 8, sL: 52, eL: 10, sR: 52, eR: 10, hR: 62, kR: 82, hL: 8, kL: 6 },
+      { t: 8, sL: 52, eL: 10, sR: 52, eR: 10, hL: 62, kL: 82, hR: 8, kR: 6, j: 1 }] },
+    stepperhiit: { dur: 760, stepper: true, kf: [
+      { t: 14, sL: 55, eL: 12, sR: 55, eR: 12, hR: 66, kR: 88, hL: 10, kL: 10 },
+      { t: 14, sL: 55, eL: 12, sR: 55, eR: 12, hL: 66, kL: 88, hR: 10, kR: 10, j: 2 }] },
+    stepperdeep: { dur: 1900, stepper: true, kf: [
+      { t: 0, sL: 50, eL: 8, sR: 50, eR: 8, hR: 78, kR: 100, hL: 4, kL: 2 },
+      { t: 0, sL: 50, eL: 8, sR: 50, eR: 8, hL: 78, kL: 100, hR: 4, kR: 2, j: 1 }] },
+    steppersid: { view: 'f', dur: 1600, stepper: true, kf: [
+      { t: 0, sL: 24, eL: -14, sR: 24, eR: -14, hR: 34, kR: 84, hL: 5, kL: 3 },
+      { t: 0, sL: 24, eL: -14, sR: 24, eR: -14, hL: 34, kL: 84, hR: 5, kR: 3, j: 1 }] }
   };
 
   // ---------- Matemática ----------
@@ -954,6 +968,37 @@
           s += seg(a, W1, 2.5, 'av-strap far') + seg(a, W2, 3, 'av-strap') + `<rect x="${f1(a[0] - 14)}" y="0" width="28" height="6" class="av-post"/>`;
           break;
         }
+        case 'stepper': {
+          const gy = GROUND - 2, metal = '#64748b', dark = '#1f2937', rail = '#475569';
+          const pedal = (k, col, w) => {
+            const A = J['A' + k], F = J['F' + k];
+            const py = Math.max(A[1], F[1]) + 4.2;                      // la suela apoya sobre el pedal
+            return { py, x0: Math.min(A[0], F[0]) - 8, x1: Math.max(A[0], F[0]) + 5, col, w };
+          };
+          if (!J.front) {
+            const hx = Math.max(W1[0], W2[0]), hy = (W1[1] + W2[1]) / 2;
+            const colX = hx + 9, baseX = colX + 22;
+            const cxAt = y => colX + (baseX - colX) * (y - hy) / (gy - hy);
+            const link = (pd) => segc([pd.x1 - 3, pd.py + 2], [cxAt(pd.py + 2), pd.py + 2], 2.6, '#94a3b8');
+            const rect = pd => `<rect x="${f1(pd.x0)}" y="${f1(pd.py)}" width="${f1(pd.x1 - pd.x0)}" height="4" rx="2" fill="${pd.col}"/><line x1="${f1(pd.x0 + 2)}" y1="${f1(pd.py + .8)}" x2="${f1(pd.x1 - 2)}" y2="${f1(pd.py + .8)}" stroke="#fff" stroke-opacity=".3" stroke-width=".8"/>`;
+            const pl = pedal('L', '#475569'), pr2 = pedal('R', dark);
+            s += link(pl) + rect(pl);                                      // pedal lejano
+            s += segc([colX - 62, gy], [colX + 46, gy], 5, rail)           // base estabilizadora
+              + segc([colX, hy], [baseX, gy], 4.6, metal)                  // columna inclinada
+              + segc([hx - 3, hy], [colX, hy], 4.2, dark)                  // manillar
+              + circ([colX, hy], 2.6, dark);
+            s += link(pr2) + rect(pr2);                                    // pedal cercano
+          } else {
+            const hy = (W1[1] + W2[1]) / 2, lx = Math.min(W1[0], W2[0]) - 8, rx = Math.max(W1[0], W2[0]) + 8;
+            const pl = pedal('L'), pr2 = pedal('R');
+            const rect = (pd, col) => `<rect x="${f1((pd.x0 + pd.x1) / 2 - 8)}" y="${f1(pd.py)}" width="16" height="4" rx="2" fill="${col}"/>`;
+            s += segc([lx, hy], [lx, gy], 3, metal) + segc([rx, hy], [rx, gy], 3, metal) + segc([lx - 14, gy], [rx + 14, gy], 5, rail)
+              + segc([lx - 3, hy], [Math.min(W1[0], W2[0]) - 1, hy], 4, dark) + segc([Math.max(W1[0], W2[0]) + 1, hy], [rx + 3, hy], 4, dark);   // agarres laterales (no cruzan el cuerpo)
+            s += segc([(pl.x0 + pl.x1) / 2 - 8, pl.py + 2], [lx, pl.py + 2], 2.4, '#94a3b8') + segc([(pr2.x0 + pr2.x1) / 2 + 8, pr2.py + 2], [rx, pr2.py + 2], 2.4, '#94a3b8');
+            s += rect(pl, '#475569') + rect(pr2, dark);
+          }
+          break;
+        }
         case 'bar':
           if (!anim.bar) s += '';
           break;
@@ -1047,6 +1092,7 @@
       if (a.view === 'f') dx = W / 2;
       if (a.band === 'front' || a.trx) dx -= 25;
       if (a.band === 'back') dx += 25;
+      if (a.stepper && a.view !== 'f') dx -= 14;
       this.dx = dx;
       this.first = shift(J0, dx, anchorY(J0, a, S));
       this.lowP = lowP;
@@ -1184,7 +1230,7 @@
   }
 
   // Deriva accesorios a partir del equipo requerido por el ejercicio
-  const EQUIP_PROP = { mancuernas: 'dumbbell', kettlebell: 'kettlebell', barra: 'barbell', liga_tubular: 'band', banda_larga: 'band', miniband: 'miniband', cuerda: 'rope', rueda: 'wheel', balon: 'ball', trx: 'trx', barra_dom: 'bar', silla: 'chair' };
+  const EQUIP_PROP = { mancuernas: 'dumbbell', kettlebell: 'kettlebell', barra: 'barbell', liga_tubular: 'band', banda_larga: 'band', miniband: 'miniband', cuerda: 'rope', rueda: 'wheel', balon: 'ball', trx: 'trx', barra_dom: 'bar', silla: 'chair', escaladora: 'stepper' };
   function propsFor(eq) { return (eq || []).map(e => EQUIP_PROP[e]).filter(Boolean); }
 
   global.MiFitAvatar = { Avatar, ANIMS, CHARS, GROUPS, ACCENTS, propsFor, FALLBACK_ANIM };

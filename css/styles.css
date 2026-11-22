@@ -608,3 +608,25 @@ body.training .toast.show { transform: translate(-50%, 0); }
 @media (max-height: 700px) { .cat-av { min-height: 140px; height: 22vh; } .cat-modes button { min-height: 40px; } }
 .cat-tech .tech-n { background: var(--brand); }
 .cat-tech .tech-row.err .tech-n { background: var(--danger); }
+
+/* ===== Especificaciones por equipo y herramientas extra (v1.5.0) ===== */
+.eq-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.eq-item .eq-card { flex: 1; }
+.eq-spec input { width: 100%; height: 42px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface-2); padding: 0 10px; font-size: .84rem; color: var(--text); }
+.eq-spec input:focus { border-color: var(--brand); outline: none; }
+.eq-sug { display: none; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.eq-spec:focus-within .eq-sug { display: flex; }
+.eq-chip { min-height: 34px; padding: 0 10px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface); font-size: .74rem; font-weight: 700; }
+.extra-card { margin-top: 16px; }
+.ex-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.ex-row.off { opacity: .55; }
+.ex-info { flex: 1; min-width: 0; }
+.ex-info b { display: block; line-height: 1.25; }
+.ex-info small { color: var(--muted); font-size: .78rem; }
+.ex-form summary { min-height: 52px; display: flex; align-items: center; font-weight: 800; cursor: pointer; color: var(--brand); list-style: none; }
+.ex-form summary::-webkit-details-marker { display: none; }
+.ex-form .field { margin-top: 8px; }
+.ex-form .btn { margin-top: 12px; }
+.ex-specs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ex-spec { background: color-mix(in srgb, #0ea5e9 14%, var(--surface)); border: 1px solid color-mix(in srgb, #0ea5e9 40%, transparent); border-radius: 999px; padding: 2px 10px; font-size: .74rem; font-weight: 700; line-height: 1.35; }
+.ex-spec.tool { background: color-mix(in srgb, var(--brand) 12%, var(--surface)); border-color: color-mix(in srgb, var(--brand) 40%, transparent); }

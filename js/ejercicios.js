@@ -32,21 +32,24 @@
       { id: 'pared', n: 'Pared', i: '🧱', d: 'Sentadilla isométrica, apoyos' }
     ] },
     { cat: 'Ligas y bandas', items: [
-      { id: 'liga_tubular', n: 'Ligas tubulares con agarres', i: '🎗️', d: 'Remos, press, curl' },
-      { id: 'miniband', n: 'Bandas circulares (mini bands)', i: '⭕', d: 'Glúteo y cadera' },
-      { id: 'banda_larga', n: 'Banda larga de poder', i: '➰', d: 'Asistencia de dominadas, jalones' }
+      { id: 'liga_tubular', n: 'Ligas tubulares con agarres', i: '🎗️', d: 'Remos, press, curl', sug: ['Anclaje puerta 35-55 lbs', 'Ligera', 'Media', 'Fuerte'] },
+      { id: 'miniband', n: 'Bandas circulares (mini bands)', i: '⭕', d: 'Glúteo y cadera', sug: ['Ligera', 'Media', 'Fuerte'] },
+      { id: 'banda_larga', n: 'Banda larga de poder', i: '➰', d: 'Asistencia de dominadas, jalones', sug: ['Resistencia 15-35 lbs', 'Resistencia 35-65 lbs'] }
     ] },
     { cat: 'Pesas libres', items: [
-      { id: 'mancuernas', n: 'Mancuernas', i: '🏋️', d: 'Ajustables o fijas' },
-      { id: 'kettlebell', n: 'Pesa rusa (Kettlebell)', i: '🔔', d: 'Swings, goblet, remos' },
-      { id: 'barra', n: 'Barra recta con discos', i: '🏋️‍♂️', d: 'Fuerza básica' }
+      { id: 'mancuernas', n: 'Mancuernas', i: '🏋️', d: 'Ajustables o fijas', sug: ['5-40 lbs', 'Ajustables 2-20 kg', 'Par de 5 kg'] },
+      { id: 'kettlebell', n: 'Pesa rusa (Kettlebell)', i: '🔔', d: 'Swings, goblet, remos', sug: ['8 kg', '12 kg', '16 kg'] },
+      { id: 'barra', n: 'Barra recta con discos', i: '🏋️‍♂️', d: 'Fuerza básica', sug: ['Kit 20 kg convertible', 'Barra 20 kg + discos'] }
     ] },
     { cat: 'Accesorios', items: [
-      { id: 'cuerda', n: 'Cuerda para saltar', i: '🪢', d: 'Cardio intenso' },
-      { id: 'rueda', n: 'Rueda abdominal', i: '🛞', d: 'Core avanzado' },
-      { id: 'trx', n: 'TRX / Suspensión', i: '🎯', d: 'Remos y empujes' },
-      { id: 'balon', n: 'Balón medicinal', i: '🏐', d: 'Potencia y core' },
-      { id: 'barra_dom', n: 'Barra de dominadas', i: '🚪', d: 'Tirón vertical' }
+      { id: 'cuerda', n: 'Cuerda para saltar', i: '🪢', d: 'Cardio intenso', sug: ['Ajustable', 'Con rodamientos'] },
+      { id: 'rueda', n: 'Rueda abdominal', i: '🛞', d: 'Core avanzado', sug: ['Rueda doble'] },
+      { id: 'trx', n: 'TRX / Suspensión', i: '🎯', d: 'Remos y empujes', sug: ['Anclaje puerta', 'Anclaje techo'] },
+      { id: 'balon', n: 'Balón medicinal', i: '🏐', d: 'Potencia y core', sug: ['3 kg', '5 kg'] },
+      { id: 'barra_dom', n: 'Barra de dominadas', i: '🚪', d: 'Tirón vertical', sug: ['Anclaje puerta', 'Montaje en pared'] }
+    ] },
+    { cat: 'Cardio', items: [
+      { id: 'escaladora', n: 'Escaladora vertical / Stepper', i: '🪜', d: 'Cardio, glúteo y piernas', sug: ['3 ángulos 35°-55° / 3 resortes', '1-2 resortes', '2-3 resortes'] }
     ] }
   ];
   const EQUIPO_NOMBRE = {};
@@ -221,6 +224,11 @@
     { id: 'sentadilla_profunda', n: 'Sentadilla profunda sostenida', g: 'Movilidad', p: 'movilidad', eq: [], lv: 1, ci: ['rodillas'], t: 's', b: 40, a: 'squathold', met: 2.5, m: 'Cadera, tobillos', tip: 'Talones abajo, codos empujan rodillas hacia afuera.', f: 'pe' },
     { id: 'zancada_flexor', n: 'Estiramiento de flexor de cadera', g: 'Movilidad', p: 'movilidad', eq: [], lv: 1, ci: ['rodillas'], t: 's', b: 40, a: 'lunge', met: 2.3, m: 'Psoas, cuádriceps', tip: 'Rodilla atrás apoyada en tapete, empuja la cadera adelante.', f: 'pe' },
     { id: 'gusano_mov', n: 'Caminata de manos lenta', g: 'Movilidad', p: 'movilidad', eq: [], lv: 1, ci: ['munecas'], t: 's', b: 40, a: 'inchworm', met: 3, m: 'Cadena posterior, hombros', tip: 'Rodillas suaves al bajar, respira profundo.', f: 'p' },
+    // ===== Escaladora vertical / Stepper =====
+    { id: 'escaladora_constante', n: 'Escaladora ritmo constante', g: 'Cardio', p: 'cardio', eq: ['escaladora'], lv: 1, ci: [], t: 's', b: 90, a: 'stepper', met: 7, m: 'Cuádriceps, glúteos, pantorrillas, cardio', tip: 'Inclinación media (45°) y 1-2 resortes; pasos fluidos de talón a punta, sin colgarte del manillar.', f: 'p' },
+    { id: 'escaladora_hiit', n: 'Escaladora intervalos HIIT', g: 'Cardio', p: 'cardio', eq: ['escaladora'], lv: 2, ci: ['rodillas'], t: 's', b: 30, a: 'stepperhiit', met: 10, m: 'Cuádriceps, glúteos, cardio de alta intensidad', tip: 'Inclinación 35°-45° y 1-2 resortes; ráfagas intensas con control y respiración rítmica.', f: 'p' },
+    { id: 'escaladora_profundo', n: 'Escaladora paso profundo', g: 'Piernas', p: 'zancada', eq: ['escaladora'], lv: 2, ci: ['rodillas'], t: 's', b: 40, a: 'stepperdeep', met: 8, m: 'Glúteos, cuádriceps', tip: 'Inclinación vertical (55°) y 2-3 resortes; baja el pedal por completo y empuja con el talón.', f: 'p' },
+    { id: 'escaladora_lateral', n: 'Escaladora paso lateral', g: 'Glúteos', p: 'gluteo', eq: ['escaladora'], lv: 1, ci: [], t: 's', b: 40, a: 'steppersid', met: 6, m: 'Glúteo medio, abductores', tip: 'Inclinación 45°-55° y 1-2 resortes; abre la cadera hacia afuera y mantén el torso estable.', f: 'p' },
 
     // ===== Estiramientos (enfriamiento) =====
     { id: 'est_cuadriceps', n: 'Estiramiento de cuádriceps de pie', g: 'Estiramiento', p: 'estiramiento', eq: [], lv: 1, ci: ['rodillas'], t: 's', b: 30, a: 'stretchquad', met: 2.3, m: 'Cuádriceps', tip: 'Rodillas juntas, glúteo apretado. Cambia de pierna a la mitad.', f: 'e' },
@@ -237,6 +245,18 @@
   ];
 
   const PREP_SECS = 10; // preparación exacta antes de cada ejercicio
+  // Compatibilidad de movimiento (herramientas extra): vincula una herramienta con grupos del catálogo
+  const COMPAT = [
+    { id: 'peso_inferior', n: 'Peso corporal / Tren inferior', test: e => ['sentadilla', 'zancada', 'gluteo', 'bisagra', 'pantorrilla'].includes(e.p) },
+    { id: 'carga_libre', n: 'Mancuernas / Carga libre', test: e => e.eq.some(q => ['mancuernas', 'kettlebell', 'barra', 'balon'].includes(q)) },
+    { id: 'ligas', n: 'Ligas / Resistencia', test: e => e.eq.some(q => ['liga_tubular', 'miniband', 'banda_larga'].includes(q)) },
+    { id: 'cardio_stepper', n: 'Cardio / Stepper', test: e => e.p === 'cardio' || e.eq.some(q => ['escaladora', 'cuerda'].includes(q)) },
+    { id: 'superior', n: 'Tren superior', test: e => ['empuje_h', 'empuje_v', 'tiron_h', 'tiron_v', 'brazos'].includes(e.p) },
+    { id: 'core', n: 'Core / Abdomen', test: e => e.p === 'core' },
+    { id: 'movilidad', n: 'Movilidad / Estiramiento', test: e => ['calentamiento', 'movilidad', 'estiramiento'].includes(e.p) },
+    { id: 'general', n: 'Otro / General', test: () => false }
+  ];
+  const COMPAT_BY_ID = {}; COMPAT.forEach(c => { COMPAT_BY_ID[c.id] = c; });
   const BY_ID = {};
   X.forEach(e => { BY_ID[e.id] = e; });
 
@@ -276,7 +296,8 @@
     elev_piernas: 'ab|cu', hollow: 'ab|cu', giro_ruso: 'ab|ho', giro_ruso_balon: 'ab|ho,pe', rueda_abdominal: 'ab|es,ho,pe',
     pallof_liga: 'ab|ho,pe', lenador_liga: 'ab|ho,es,gl', toque_hombro: 'ab,ho|pe,tr', rodillas_trx: 'ab,ho|pe,cu',
     est_cuadriceps: 'cu|', est_isquios: 'is|es', est_hombro: 'ho|es', est_triceps: 'tr|ho', est_lateral: 'ab|es', est_pecho: 'pe|ho',
-    postura_nino: 'es|gl', cobra: 'ab|pe', abrazo_rodillas: 'gl|es,is', respiracion: 'ab|', est_pantorrilla: 'pa|is'
+    postura_nino: 'es|gl', cobra: 'ab|pe', abrazo_rodillas: 'gl|es,is', respiracion: 'ab|', est_pantorrilla: 'pa|is',
+    escaladora_constante: 'cu,gl|pa,is,ab', escaladora_hiit: 'cu,gl|pa,is,ab', escaladora_profundo: 'gl,cu|is,pa', escaladora_lateral: 'gl|cu,pa,ab'
   };
   function parseMus(str) {
     const [a, b] = String(str || '|').split('|');
@@ -311,6 +332,7 @@
   const _lagBase = { ini: 'Manos bajo los hombros y cuerpo recto de cabeza a talones.', err: 'Hundir la cadera o abrir los codos.' };
   const _colgar = { ini: 'Cuelga con brazos extendidos y hombros activos.', err: 'Balancearte o encoger los hombros hacia las orejas.' };
   const _espaldaPiso = { ini: 'Boca arriba, espalda baja pegada al piso y abdomen firme.', err: 'Arquear la espalda baja al mover las piernas.' };
+  const _escal = { ini: 'Manos en el manillar, torso erguido y pies centrados en los pedales.', err: 'Colgarte del manillar o dar pasos cortos sin empujar el pedal.', marks: [['spine', '', 'Torso erguido'], ['pt', 'W', 'Agarre ligero'], ['pt', 'K', 'Rodillas alineadas']] };
   const GUIA_ID = {
     puente_gluteo: _boca, puente_1p: _boca, puente_miniband: _boca, hip_thrust_mancuerna: _boca,
     plancha: { ini: 'Antebrazos bajo los hombros, cuerpo en línea recta.', err: 'Hundir la cadera o levantarla demasiado.' },
@@ -342,7 +364,8 @@
     respiracion: { ini: 'Acostado o sentado, una mano sobre el abdomen.', err: 'Elevar los hombros al inhalar.' },
     postura_nino: { ini: 'De rodillas, glúteos hacia los talones y brazos al frente.', err: 'Levantar la cadera de los talones por tensión.' },
     cobra: { ini: 'Boca abajo, manos bajo los hombros y cadera en el piso.', err: 'Empujar con los brazos y arquear de más la zona lumbar.' },
-    abrazo_rodillas: { ini: 'Boca arriba, lleva las rodillas hacia el pecho.', err: 'Levantar la cabeza y tensar el cuello.' }
+    abrazo_rodillas: { ini: 'Boca arriba, lleva las rodillas hacia el pecho.', err: 'Levantar la cabeza y tensar el cuello.' },
+    escaladora_constante: _escal, escaladora_hiit: _escal, escaladora_profundo: _escal, escaladora_lateral: _escal
   };
   function guiaDe(e) {
     const base = GUIA_PATRON[e.p] || GUIA_PATRON.core, o = GUIA_ID[e.id] || {};
@@ -463,11 +486,13 @@
     const calSecs = items.concat(enfItems).reduce((a, it) => a + duracionItem(it), 0);
     let budget = dur * 60 - calSecs;
     const pri = disponibles(ctx, 'p');
+    const extras = (op.extras || []).map(id => COMPAT_BY_ID[id]).filter(Boolean);
     const pesos = (e) => {
       let w = 1;
       if (e.eq.length && (perfil.objetivo === 'hipertrofia' || perfil.objetivo === 'fuerza')) w *= 1.8;
       if (perfil.objetivo === 'fuerza') w *= e.lv;
       if (recientes.has(e.id)) w *= 0.4;
+      if (extras.some(c => c.test(e))) w *= 1.5;   // herramienta extra activa del usuario
       return w;
     };
     let pi = 0, guard = 0, desdeCardio = 0, fallos = 0;
@@ -520,7 +545,7 @@
   }
 
   global.MiFitDB = {
-    EQUIPO, EQUIPO_NOMBRE, LESIONES, MUSCULOS, PREP_SECS, parseMus, musNombres, guiaDe, OBJETIVOS, EJERCICIOS: X, BY_ID, DIAS, PARAMS,
+    EQUIPO, EQUIPO_NOMBRE, LESIONES, COMPAT, COMPAT_BY_ID, MUSCULOS, PREP_SECS, parseMus, musNombres, guiaDe, OBJETIVOS, EJERCICIOS: X, BY_ID, DIAS, PARAMS,
     generarRutina, alternativa, prescribir, permitido, disponibles, estimarMinutos, duracionItem, hash, LEVEL
   };
 })(window);

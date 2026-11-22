@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.4.1'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.5.0'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -29,7 +29,8 @@
   const K = {
     profile: 'mifit_profile', equip: 'mifit_equip', settings: 'mifit_settings', tab: 'mifit_activeTab',
     theme: 'mifit_theme', routine: 'mifit_routine', prog: 'mifit_prog', travel: 'mifit_travel',
-    lastBackup: 'mifit_lastBackup', lastActivity: 'mifit_lastActivity', lastReminder: 'mifit_lastReminder', welcomed: 'mifit_welcomed'
+    lastBackup: 'mifit_lastBackup', lastActivity: 'mifit_lastActivity', lastReminder: 'mifit_lastReminder', welcomed: 'mifit_welcomed',
+    specs: 'mifit_equipo_specs', custom: 'mifit_equipo_custom'   // v1.5.0: especificaciones por equipo y herramientas extra (claves nuevas; las existentes no cambian)
   };
   const LS = {
     get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
@@ -43,6 +44,8 @@
   const S = {
     profile: Object.assign({}, DEF_PROFILE, LS.get(K.profile, {})),
     equip: LS.get(K.equip, ['tapete']),
+    specs: LS.get(K.specs, {}),
+    custom: LS.get(K.custom, []),
     settings: Object.assign({}, DEF_SETTINGS, LS.get(K.settings, {})),
     prog: LS.get(K.prog, {}),
     travel: LS.get(K.travel, null),
@@ -54,6 +57,10 @@
     calOffset: 0,
     chartMetric: 'peso'
   };
+  // Especificaciones y herramientas extra: se validan al leer (los datos guardados no se modifican)
+  if (!S.specs || typeof S.specs !== 'object' || Array.isArray(S.specs)) S.specs = {};
+  if (!Array.isArray(S.custom)) S.custom = [];
+  S.custom = S.custom.filter(c => c && c.id && c.n).map(c => ({ id: String(c.id), n: String(c.n).slice(0, 40), spec: String(c.spec || '').slice(0, 60), cat: c.cat || 'general', on: c.on !== false }));
   // Entrenador elegido (migra el antiguo ajuste masculino/femenino)
   if (!CHARS.some(c => c.id === S.settings.personaje)) S.settings.personaje = S.settings.genero === 'f' ? 'atleta_f' : 'atleta_m';
   if (!ACCENTS.some(a => a.id === S.settings.acento)) S.settings.acento = 'naranja';
@@ -276,21 +283,80 @@
   // =========================================================================
   //  PESTAÑA 2 · GIMNASIO
   // =========================================================================
-  function equipoHTML(sel, fixedTxt) {
+  // ---------- Especificaciones del equipo y herramientas extra (v1.5.0) ----------
+  const specClean = (v, max = 80) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, max);
+  const customActive = () => S.custom.filter(c => c.on);
+  const compatOf = id => DB.COMPAT_BY_ID[id] || DB.COMPAT_BY_ID.general;
+  const customFor = e => S.custom.find(c => c.on && compatOf(c.cat).test(e));
+  // Detalles (peso, ángulo, resistencia) que aplican a un ejercicio: del equipo marcado y de la herramienta extra vinculada
+  function specList(e) {
+    const eff = equipoEfectivo(), out = [];
+    e.eq.forEach(q => { if (eff.includes(q) && S.specs[q]) out.push({ t: `${DB.EQUIPO_NOMBRE[q]}: ${S.specs[q]}`, tool: false }); });
+    const c = customFor(e); if (c) out.push({ t: `${c.n}${c.spec ? ': ' + c.spec : ''}`, tool: true });
+    return out;
+  }
+  const specBadges = e => { const l = specList(e).slice(0, 2); return l.length ? `<div class="ex-specs">${l.map(x => `<span class="ex-spec ${x.tool ? 'tool' : ''}">${x.tool ? '🛠️' : '⚙️'} ${esc(x.t)}</span>`).join('')}</div>` : ''; };
+  const specLine = e => specList(e).map(x => x.t).join(' · ');
+  const saveSpecs = () => LS.set(K.specs, S.specs);
+  const saveCustom = () => { LS.set(K.custom, S.custom); S.routineDirty = true; };
+
+  function equipoHTML(sel, fixedTxt, withSpecs) {
     return DB.EQUIPO.map(c => `<h3 class="eq-cat">${c.cat}</h3><div class="eq-grid">` + c.items.map(i => {
       const on = i.fixed || sel.includes(i.id);
-      return `<button class="eq-card ${on ? 'on' : ''} ${i.fixed ? 'fixed' : ''}" data-id="${i.id}" aria-pressed="${on}" ${i.fixed ? 'disabled' : ''}><span class="ei">${i.i}</span><b>${i.n}</b><small>${i.fixed ? fixedTxt || i.d : i.d}</small></button>`;
+      const card = `<button class="eq-card ${on ? 'on' : ''} ${i.fixed ? 'fixed' : ''}" data-id="${i.id}" aria-pressed="${on}" ${i.fixed ? 'disabled' : ''}><span class="ei">${i.i}</span><b>${i.n}</b><small>${i.fixed ? fixedTxt || i.d : i.d}</small></button>`;
+      if (!withSpecs) return card;
+      const sug = (i.sug || []).length ? `<div class="eq-sug">${i.sug.map(t => `<button type="button" class="eq-chip" data-sug="${i.id}">${esc(t)}</button>`).join('')}</div>` : '';
+      const spec = on && !i.fixed ? `<div class="eq-spec"><input type="text" data-spec="${i.id}" value="${esc(S.specs[i.id] || '')}" maxlength="80" placeholder="Detalle (opcional)" aria-label="Detalle de ${esc(i.n)}" autocomplete="off">${sug}</div>` : '';
+      return `<div class="eq-item">${card}${spec}</div>`;
     }).join('') + '</div>').join('');
   }
+  function renderExtras() {
+    const sel = $('#exCat');
+    if (!sel.options.length) sel.innerHTML = DB.COMPAT.map(c => `<option value="${c.id}">${esc(c.n)}</option>`).join('');
+    $('#exLista').innerHTML = S.custom.length
+      ? S.custom.map(c => `<div class="ex-row ${c.on ? '' : 'off'}"><input type="checkbox" class="switch" data-exon="${c.id}" ${c.on ? 'checked' : ''} aria-label="Activar ${esc(c.n)}"><div class="ex-info"><b>${esc(c.n)}</b><small>${esc([c.spec, compatOf(c.cat).n].filter(Boolean).join(' · '))}</small></div><button class="icon-btn" data-exdel="${c.id}" aria-label="Eliminar ${esc(c.n)}">🗑️</button></div>`).join('')
+      : '<p class="hint">Aún no agregas herramientas extra (tobilleras, step, discos…).</p>';
+  }
   function renderGimnasio() {
-    $('#equipoLista').innerHTML = equipoHTML(S.equip);
-    const n = S.equip.length + 1;
+    $('#equipoLista').innerHTML = equipoHTML(S.equip, null, true);
+    renderExtras();
+    const n = S.equip.length + 1, extra = customActive().length;
     const ej = DB.EJERCICIOS.filter(e => e.eq.every(q => q === 'corporal' || S.equip.includes(q))).length;
-    $('#equipoResumen').textContent = `🧰 ${n} herramienta${n > 1 ? 's' : ''} · ${ej} ejercicios disponibles`;
+    $('#equipoResumen').textContent = `🧰 ${n} herramienta${n > 1 ? 's' : ''}${extra ? ` + ${extra} extra` : ''} · ${ej} ejercicios disponibles`;
     $('#travelInfo').textContent = travelActive() ? `🧳 Modo viaje activo hoy (${S.travel.equipo.length ? S.travel.equipo.map(i => DB.EQUIPO_NOMBRE[i]).join(', ') : 'solo peso corporal'}).` : '';
   }
+  function bindExtras() {
+    $('#btnExAdd').addEventListener('click', () => {
+      const n = specClean($('#exNombre').value, 40), sp = specClean($('#exSpec').value, 60);
+      if (!n) { toast('Escribe el nombre de la herramienta'); $('#exNombre').focus(); return; }
+      if (S.custom.length >= 20) { toast('Máximo 20 herramientas extra'); return; }
+      S.custom.push({ id: 'x' + Date.now().toString(36), n, spec: sp, cat: $('#exCat').value || 'general', on: true });
+      saveCustom(); $('#exNombre').value = ''; $('#exSpec').value = '';
+      renderGimnasio(); toast(`➕ ${n} agregada`);
+    });
+    $('#exLista').addEventListener('change', e => {
+      const cb = e.target.closest('[data-exon]'); if (!cb) return;
+      const c = S.custom.find(x => x.id === cb.dataset.exon);
+      if (c) { c.on = cb.checked; saveCustom(); renderGimnasio(); }
+    });
+    $('#exLista').addEventListener('click', e => {
+      const d = e.target.closest('[data-exdel]'); if (!d) return;
+      const c = S.custom.find(x => x.id === d.dataset.exdel);
+      if (c && confirm(`¿Eliminar “${c.n}”?`)) { S.custom = S.custom.filter(x => x !== c); saveCustom(); renderGimnasio(); toast('🗑️ Herramienta eliminada'); }
+    });
+  }
   function bindGimnasio() {
-    $('#equipoLista').addEventListener('click', e => {
+    const lista = $('#equipoLista');
+    const applyChip = chip => { const id = chip.dataset.sug, inp = $(`[data-spec="${id}"]`, lista); if (!inp) return; inp.value = chip.textContent; S.specs[id] = specClean(chip.textContent); saveSpecs(); inp.focus(); };
+    lista.addEventListener('pointerdown', e => { const chip = e.target.closest('.eq-chip'); if (chip) { e.preventDefault(); applyChip(chip); } });   // no quita el foco del campo
+    lista.addEventListener('input', e => {
+      const inp = e.target.closest('[data-spec]'); if (!inp) return;
+      const v = specClean(inp.value); if (v) S.specs[inp.dataset.spec] = v; else delete S.specs[inp.dataset.spec];
+      saveSpecs();
+    });
+    bindExtras();
+    lista.addEventListener('click', e => {
+      const chip = e.target.closest('.eq-chip'); if (chip) { applyChip(chip); return; }
       const b = e.target.closest('.eq-card'); if (!b || b.disabled) return;
       const id = b.dataset.id;
       S.equip = S.equip.includes(id) ? S.equip.filter(x => x !== id) : S.equip.concat(id);
@@ -327,7 +393,8 @@
   function generarOffline(nueva) {
     const seed = nueva ? (Date.now() & 0x7fffffff) : DB.hash(dayKey() + '|' + S.settings.sesion);
     S.routine = DB.generarRutina(S.profile, equipoEfectivo(), {
-      duracion: S.settings.duracion, indiceSesion: S.settings.sesion, semilla: seed, prog: S.prog, recientes: recientes()
+      duracion: S.settings.duracion, indiceSesion: S.settings.sesion, semilla: seed, prog: S.prog, recientes: recientes(),
+      extras: customActive().map(c => c.cat)   // las herramientas extra activas inclinan la selección hacia ejercicios compatibles
     });
     S.routine.sesion = S.settings.sesion;
     S.routine.viaje = travelActive();
@@ -383,6 +450,7 @@
             <div class="ex-meta"><span class="hl">${itemMeta(it)}</span>${it.block === 'pri' ? `<span>⏸ ${it.rest}s</span>` : ''}<span>${esc(eqTxt)}</span></div>
             <p class="ex-muscles">🎯 ${esc(e.m)}</p>
             ${it.nota ? `<p class="ex-muscles">✨ ${esc(it.nota)}</p>` : ''}
+            ${specBadges(e)}
             ${it.block === 'pri' ? progHint(it.id) : ''}
           </div>
           <div class="ex-actions">
@@ -463,19 +531,24 @@
       const p = S.profile;
       const ctx = { lv: DB.LEVEL[p.nivel] || 1, lesiones: p.lesiones || [], equipo: new Set(['corporal'].concat(equipoEfectivo())) };
       const lista = DB.EJERCICIOS.filter(e => DB.permitido(e, ctx));
-      const catalogo = lista.map(e => `${e.id}|${e.n}|${e.p}|${e.f}|${e.t === 's' ? 'seg' : 'reps'}`).join('\n');
+      const catalogo = lista.map(e => `${e.id}|${e.n}|${e.p}|${e.f}|${e.t === 's' ? 'seg' : 'reps'}|${e.eq.join('+') || 'corporal'}`).join('\n');
+      const specsTxt = equipoEfectivo().filter(q => S.specs[q]).map(q => `${DB.EQUIPO_NOMBRE[q]}: ${S.specs[q]}`).join('; ');
+      const customTxt = customActive().map(c => `${c.n}${c.spec ? ' (' + c.spec + ')' : ''} [compatibilidad: ${compatOf(c.cat).n}]`).join('; ');
       const progTxt = Object.entries(S.prog).slice(-15).map(([id, v]) => `${id}:${v.last}`).join(', ');
       const dia = DB.generarRutina(p, equipoEfectivo(), { indiceSesion: S.settings.sesion, duracion: S.settings.duracion }).diaNombre;
       const prompt = `Eres un entrenador personal certificado. Diseña la sesión de HOY en español.
 Perfil: ${p.edad} años, ${p.sexo === 'f' ? 'mujer' : 'hombre'}, ${p.peso} kg, ${p.estatura} cm, nivel ${p.nivel}, entrena ${p.dias} días/semana.
 Objetivo: ${DB.OBJETIVOS[p.objetivo].n}. Lesiones/limitaciones: ${(p.lesiones || []).join(', ') || 'ninguna'}.
 Equipo disponible: ${['Peso corporal'].concat(equipoEfectivo().map(i => DB.EQUIPO_NOMBRE[i])).join(', ')}.
+Especificaciones técnicas del equipo del usuario (peso, ángulo o resistencia): ${specsTxt || 'sin datos'}.
+Herramientas extra del usuario (no tienen id propio): ${customTxt || 'ninguna'}.
 Duración total: ${S.settings.duracion} minutos. Enfoque sugerido del día: ${dia}.
 Sensaciones recientes (RPE): ${progTxt || 'sin datos'}.
-Usa EXCLUSIVAMENTE ids de este catálogo (id|nombre|patrón|fases c=calentamiento p=principal e=enfriamiento|tipo):
+Usa EXCLUSIVAMENTE ids de este catálogo (id|nombre|patrón|fases c=calentamiento p=principal e=enfriamiento|tipo|equipo requerido):
 ${catalogo}
 Reglas: bloque "cal" 3-6 ejercicios de 30-40 s; bloque "pri" coherente con el objetivo; bloque "enf" 3-6 estiramientos de 30-45 s.
 Cada repetición ≈ 3.5 s. La suma de trabajo + descansos debe aproximarse a ${S.settings.duracion} minutos.
+Elige ejercicios SOLO por su id del catálogo (nunca inventes ejercicios ni ids). En "nota" de cada ejercicio que use un equipo con especificación, menciona el peso, ángulo o resistencia exacta del equipo del usuario (por ejemplo "usa 12 lb" o "inclinación 45°, 2 resortes"). Si hay herramientas extra, sugiérelas solo en la nota de ejercicios del catálogo cuya compatibilidad coincida.
 Responde SOLO JSON: {"explicacion":"3-4 frases motivadoras explicando la lógica de la sesión","ejercicios":[{"id":"","bloque":"cal|pri|enf","series":3,"reps":12,"segundos":null,"descanso":60,"nota":"consejo breve"}]}
 Usa "reps" o "segundos" (el otro en null).`;
       const out = await gemini(prompt);
@@ -485,7 +558,7 @@ Usa "reps" o "segundos" (el otro en null).`;
         return {
           id: x.id, block, sets: clamp(Math.round(+x.series || 1), 1, 6), mode: reps && !secs ? 'reps' : 'time',
           reps: clamp(Math.round(reps), 0, 50), secs: clamp(Math.round(secs || 30), 10, 180),
-          rest: clamp(Math.round(+x.descanso || (block === 'pri' ? 45 : 10)), 5, 180), nota: String(x.nota || '').slice(0, 140)
+          rest: clamp(Math.round(+x.descanso || (block === 'pri' ? 45 : 10)), 5, 180), nota: String(x.nota || '').slice(0, 180)
         };
       });
       const order = { cal: 0, pri: 1, enf: 2 };
@@ -726,7 +799,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       $('#plName').textContent = e.n;
       $('#plSet').textContent = st.sets > 1 ? `Serie ${st.set} de ${st.sets}` : (st.mode === 'time' ? 'Por tiempo' : '');
       $('#plMuscles').textContent = musTexto(e);
-      $('#plTip').textContent = '✅ ' + (it.nota || e.tip);
+      $('#plTip').textContent = '✅ ' + (it.nota || e.tip) + (specLine(e) ? ' · ⚙️ ' + specLine(e) : '');
       liveAvatar.set({ anim: e.a, ...avOpts(), props: propsFor(e.eq), muscles: e.mus });
       liveAvatar.setGuide(null); liveAvatar.showPose(null);
       liveAvatar.start(); liveAvatar.ensure(); // arranque explícito del bucle al empezar la serie
@@ -1091,7 +1164,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     Object.values(K).forEach(k => { try { const v = localStorage.getItem(k); if (v != null) ls[k] = v; } catch (e) { /* */ } });
     // Por privacidad, la API Key NO se incluye en el respaldo
     if (ls[K.settings]) { try { const s = JSON.parse(ls[K.settings]); s.apiKey = ''; ls[K.settings] = JSON.stringify(s); } catch (e) { /* */ } }
-    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), entrenador: { personaje: S.settings.personaje, acento: S.settings.acento }, localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
+    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), entrenador: { personaje: S.settings.personaje, acento: S.settings.acento }, equipoSpecs: S.specs, equipoCustom: S.custom, localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
   }
   const backupName = () => `mifitapp-respaldo-${dayKey()}.json`;
   async function exportBackup() {
@@ -1115,6 +1188,8 @@ Usa "reps" o "segundos" (el otro en null).`;
     const keepKey = LS.get(K.settings, {}).apiKey || S.settings.apiKey;
     Object.entries(data.localStorage || {}).forEach(([k, v]) => { if (k.startsWith('mifit_')) try { localStorage.setItem(k, v); } catch (e) { /* */ } });
     if (data.entrenador) { const st = LS.get(K.settings, {}); if (data.entrenador.personaje) st.personaje = data.entrenador.personaje; if (data.entrenador.acento) st.acento = data.entrenador.acento; LS.set(K.settings, st); }
+    if (data.equipoSpecs && typeof data.equipoSpecs === 'object' && !Array.isArray(data.equipoSpecs)) LS.set(K.specs, data.equipoSpecs);
+    if (Array.isArray(data.equipoCustom)) LS.set(K.custom, data.equipoCustom);
     if (keepKey) { const s = LS.get(K.settings, {}); s.apiKey = keepKey; LS.set(K.settings, s); }
     await IDB.clear('workouts'); await IDB.clear('metrics');
     for (const w of data.workouts || []) await IDB.put('workouts', w);
@@ -1344,6 +1419,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     ['¿Qué significan los músculos rojos?', 'Con los entrenadores anatómicos, el rojo intenso con pulso marca los músculos principales del ejercicio y el rojo suave los secundarios.'],
     ['¿Qué es la Vista Enfoque?', 'Toca 🎯 en el entrenamiento: fondo de estudio oscuro, series × repeticiones (o el tiempo) en grande y el avatar a gran tamaño. Tu elección se recuerda.'],
     ['¿Cómo veo un ejercicio sin esperar a la rutina?', 'En Perfil (o en Progreso → Manual) abre “🔍 Catálogo de Ejercicios”: busca por nombre, filtra por músculo o equipo, elige el avatar (prueba los anatómicos) y alterna Movimiento, Pose inicial (A) y Punto máximo (B). Es solo de consulta: no modifica tus datos.'],
+    ['¿Para qué sirven los detalles del equipo y las herramientas extra?', 'En Mi Gimnasio, al marcar un equipo puedes anotar su detalle real (peso, ángulo, resistencia: “5-40 lbs”, “3 resortes”…). Aparece como etiqueta en tus ejercicios y se envía a la IA. Con “➕ Agregar equipo o herramienta extra” registras cosas nuevas (tobilleras, step…) y las vinculas a un tipo de movimiento. Todo va en tu respaldo.'],
     ['¿Cómo se calculan las calorías?', 'Con valores MET de cada ejercicio × tu peso × tiempo real de trabajo, más el gasto en los descansos. Es una estimación.']
   ];
   function renderFAQ() { $('#faq').innerHTML = FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join(''); }

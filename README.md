@@ -10,7 +10,7 @@ Todo funciona **100% sin internet** y los datos se quedan en tu teléfono.
 | `index.html` | Estructura semántica: 5 pestañas, reproductor, modal y tour |
 | `css/styles.css` | Temas Claro / Oscuro / Automático y diseño responsivo pensado para móvil |
 | `js/app.js` | Navegación nativa (History API), almacenamiento, perfil, gimnasio, rutina, Gemini, cronómetro, voz, Wake Lock, RPE, progreso, respaldo, tour |
-| `js/ejercicios.js` | Catálogo de equipo, 136 ejercicios con sus músculos y guía de postura, filtros por equipo, nivel y lesiones, y el generador de rutinas |
+| `js/ejercicios.js` | Catálogo de equipo, 140 ejercicios con sus músculos y guía de postura, filtros por equipo, nivel y lesiones, y el generador de rutinas |
 | `js/avatar.js` | Motor del avatar SVG (cinemática 2D): 81 animaciones, accesorios, **14 personajes** sobre el mismo esqueleto, músculos iluminados, poses A/B, marcadores guía y piso de estudio |
 | `manifest.json` · `sw.js` | Instalación como app nativa y uso sin conexión |
 | `icons/` | Íconos SVG y PNG (192, 512 y maskable) |
@@ -80,9 +80,20 @@ Si no cambias `VERSION`, los usuarios se quedarán con la versión anterior en c
 
 MiFitApp no sustituye a un médico ni a un fisioterapeuta. Si tienes dolor agudo o una lesión, consulta a un profesional.
 
+## 🪜 Escaladora vertical / Stepper
+
+Equipo `escaladora` ("Escaladora vertical / Stepper", categoría *Cardio* de Mi Gimnasio y del filtro *"Hoy solo tengo…"*). Trae 4 ejercicios: **ritmo constante**, **intervalos HIIT** y **paso profundo** (estos dos con contraindicación de *rodillas*) y **paso lateral**. El avatar dibuja la máquina (base estabilizadora, columna inclinada con manillar y dos pedales que siguen exactamente a los pies) en perfil y de frente, con las animaciones `stepper`, `stepperhiit`, `stepperdeep` y `steppersid` (Pose A / Pose B / movimiento fluido) para los 14 entrenadores.
+
+## 🛠️ Especificaciones del equipo y herramientas extra (Mi Gimnasio)
+
+- **Detalle por equipo:** al marcar un equipo aparece un campo opcional para anotar su detalle real (por ejemplo `5-40 lbs`, `Kit 20 kg convertible`, `3 ángulos 35°-55° / 3 resortes`), con chips de sugerencias. Se guarda en `localStorage` → `mifit_equipo_specs` (`{ idEquipo: "texto" }`) y aparece como etiqueta ⚙️ en los ejercicios que usan ese equipo y en la voz/consejo del entrenamiento.
+- **➕ Agregar equipo o herramienta extra:** nombre, especificación opcional y *compatibilidad de movimiento* (Peso corporal / Tren inferior, Mancuernas / Carga libre, Ligas / Resistencia, Cardio / Stepper, Tren superior, Core, Movilidad u Otro). Se guarda en `mifit_equipo_custom` (`[{ id, n, spec, cat, on }]`), se puede activar/desactivar o eliminar, aparece como etiqueta 🛠️ en los ejercicios compatibles y el generador la favorece ligeramente. Las categorías están en `COMPAT` (`js/ejercicios.js`).
+- **Generador y Gemini:** el generador offline considera la escaladora y las herramientas extra activas. El prompt de Gemini incluye el equipo con sus especificaciones y las herramientas extra, pide elegir ejercicios solo por id del catálogo y mencionar en la nota el peso, ángulo o resistencia exacta.
+- **Datos:** ambas claves viajan en el respaldo `.json` (también como campos `equipoSpecs` y `equipoCustom`) y se borran con "Borrar todos mis datos". Las claves existentes no cambian.
+
 ## 🔍 Catálogo de Ejercicios (visor)
 
-En **Perfil** (y en **Progreso → Manual**) está el botón **🔍 Catálogo de Ejercicios (136)**. Abre una vista de pantalla completa para inspeccionar cualquier ejercicio sin esperar a que salga en una rutina:
+En **Perfil** (y en **Progreso → Manual**) está el botón **🔍 Catálogo de Ejercicios (140)**. Abre una vista de pantalla completa para inspeccionar cualquier ejercicio sin esperar a que salga en una rutina:
 
 - **Búsqueda** por nombre (sin distinguir mayúsculas ni acentos) y filtros por **músculo** (principal o secundario) y por **equipo** (incluye "solo peso corporal").
 - **Avatar del visor** a elección (por defecto un anatómico, para ver los músculos iluminados; los demás entrenadores también funcionan y avisan que los músculos solo se iluminan en los anatómicos). La elección es temporal: **no cambia tu entrenador guardado**.
