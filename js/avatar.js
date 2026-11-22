@@ -64,7 +64,9 @@
     pullup: { dur: 2400, anchor: 'hands', bar: true, kf: [{ sL: 178, sR: 178, hL: -8, hR: -8, kL: 50, kR: 50 }, { sL: 22, eL: 152, sR: 22, eR: 152, hL: -8, hR: -8, kL: 50, kR: 50, hd: -8 }] },
     deadhang: { dur: 3000, anchor: 'hands', bar: true, kf: [{ sL: 178, sR: 178, hL: 0, hR: 4, kR: 10 }, { sL: 177, sR: 177, hL: 2, hR: 6, kR: 14, hd: -3 }] },
     pushup: { dur: 2000, kf: [plankUp, { t: 80, hL: -80, hR: -80, sL: -42, eL: 70, sR: -42, eR: 70 }] },
-    kneepushup: { dur: 2000, kf: [{ t: 53, hL: -53, hR: -53, kL: 37, kR: 37, sL: 0, sR: 0 }, { t: 70, hL: -70, hR: -70, kL: 20, kR: 20, sL: -42, eL: 70, sR: -42, eR: 70 }] },
+    // Rodillas apoyadas en el piso (pivote), pantorrillas y pies levantados hacia atrás (tibia fija a ~35° sobre el suelo);
+    // manos y rodillas quedan a la misma altura en A y en B, y la distancia mano-rodilla se conserva.
+    kneepushup: { dur: 2000, pf: true, kf: [{ t: 51.4, hL: -51.4, hR: -51.4, kL: 73.6, kR: 73.6, sL: 0, sR: 0 }, { t: 64, hL: -64, hR: -64, kL: 61, kR: 61, sL: -55.7, eL: 86.7, sR: -55.7, eR: 86.7 }] },
     inclinepushup: { dur: 2000, chair: 'hand', kf: [{ t: 46, hL: -46, hR: -46, sL: 0, sR: 0 }, { t: 56, hL: -56, hR: -56, sL: -45, eL: 75, sR: -45, eR: 75 }] },
     wallpushup: { dur: 2000, wall: 'hand', kf: [{ t: 20, hL: -20, hR: -20, sL: 80, sR: 80 }, { t: 26, hL: -26, hR: -26, sL: 30, eL: 95, sR: 30, eR: 95 }] },
     pike: { dur: 2200, kf: [{ t: 138, hL: -42, hR: -42, sL: 42, sR: 42 }, { t: 150, hL: -40, hR: -40, sL: 72, eL: -70, sR: 72, eR: -70 }] },
@@ -107,6 +109,8 @@
     stretchside: { view: 'f', dur: 4200, kf: [{ t: -14, sR: 172, sL: 20 }, { t: 0, sR: 172, sL: 172 }, { t: 14, sL: 172, sR: 20 }, { t: 0, sR: 172, sL: 172 }] },
     stretchchest: { dur: 4000, wall: 'back', kf: [{ sL: -70, sR: -70, hd: -5 }, { sL: -82, sR: -82, hd: -8 }] },
     child: { dur: 4500, kf: [{ t: 112, hL: 80, hR: 80, kL: 170, kR: 170, sL: 98, sR: 98 }, { t: 108, hL: 80, hR: 80, kL: 170, kR: 170, sL: 98, sR: 98 }] },
+    // Superman: decúbito prono. Pelvis y abdomen apoyados; brazos y piernas extendidos que se elevan en arco.
+    superman: { dur: 3600, pf: true, anchor: 'pelvis', vb: [-22, -26, 244, 317], kf: [{ t: 90, hd: 14, sL: 98, sR: 98, eL: 0, eR: 0, hL: -92, hR: -92, kL: 0, kR: 0 }, { t: 76, hd: 8, sL: 112, sR: 112, eL: 0, eR: 0, hL: -112, hR: -112, kL: 0, kR: 0 }] },
     cobra: { dur: 4000, kf: [{ t: 65, hL: -90, hR: -90, sL: 20, eL: 20, sR: 20, eR: 20 }, { t: 50, hL: -90, hR: -90, sL: 0, sR: 0, hd: -10 }] },
     kneehug: { dur: 3600, kf: [{ t: 270, hL: 165, hR: 165, kL: 150, kR: 150, sL: 140, sR: 140, eL: 30, eR: 30 }, { t: 272, hL: 172, hR: 172, kL: 150, kR: 150, sL: 145, sR: 145, eL: 30, eR: 30 }] },
     dislocate: { view: 'f', dur: 3000, bandHands: true, kf: [{ sL: 30, sR: 30 }, { sL: 178, sR: 178 }] },
@@ -164,7 +168,7 @@
       const h = p['h' + k], kn = p['k' + k];
       const K = add(Hp, d(h, sgn), L.TH);
       const A = add(K, d(h - kn, sgn), L.SH);
-      const Ft = front ? [A[0] + 6 * sgn, A[1] + 1] : add(A, d(h - kn + 90, 1), L.FT);
+      const Ft = front ? [A[0] + 6 * sgn, A[1] + 1] : anim.pf ? add(A, d(h - kn, 1), L.FT + 1) : add(A, d(h - kn + 90, 1), L.FT);
       J['S' + k] = Sh; J['E' + k] = E; J['W' + k] = Wr; J['H' + k] = Hp; J['K' + k] = K; J['A' + k] = A; J['F' + k] = Ft;
     }
     return J;
@@ -185,6 +189,7 @@
   }
   function anchorY(J, anim, S) {
     if (anim.anchor === 'hands') return (anim.handY || BAR_Y) - Math.min(J.WL[1], J.WR[1]);
+    if (anim.anchor === 'pelvis') return GROUND - 10 - J.P[1];      // boca abajo: el abdomen descansa en el piso
     return GROUND - 6 - bounds(J, S).maxY;
   }
 
@@ -667,18 +672,43 @@
       + rg('aH', [[0, '#fbfcff'], [.28, '#dbe1ea'], [.68, '#a3adbb'], [1, '#606a79']], .38, .3, .86) // cabeza / manos / articulaciones
       + rg('aT', [[0, '#ffffff'], [.5, '#e3e8ef'], [1, '#a9b2bf']], .4, .35, .8)                   // perla / titanio claro (tendones, rótula)
       + rg('aHr', [[0, '#8a94a3'], [.6, '#586170'], [1, '#323944']], .4, .3, .9)                // cabello titanio (cofia y coleta)
+      + `<radialGradient id="aO${u}"><stop offset="0" stop-color="#04070c" stop-opacity=".55"/><stop offset=".55" stop-color="#04070c" stop-opacity=".2"/><stop offset="1" stop-color="#04070c" stop-opacity="0"/></radialGradient>`   // oclusión en pliegues
+      + `<filter id="aF${u}" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="1.1"/></filter>`    // brillo de las fibras
+      + `<filter id="aE${u}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation=".5"/></filter>`     // sombreado suave del rostro
       + `<filter id="aG${u}" x="-45%" y="-45%" width="190%" height="190%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="3"/></filter>`;
   }
 
   // Luz de borde (rim light): fino brillo especular plateado en hombros, espalda, glúteos y cuádriceps
   const RIM = { hombros: 'top', espalda: 'e1', gluteos: 'e1', cuadriceps: 'e1' };
   // Un músculo: contorno con degradado + fibras sutiles; si es principal, su forma alimenta el resplandor
+  // Orientación de las fibras por grupo: 'long' (a lo largo del músculo), 'fan' (abanico del pectoral),
+  // 'diag' (fibras oblicuas/penadas: deltoides, glúteos, oblicuos, dorsales)
+  const FIBMODE = { pecho: 'fan', hombros: 'diag', gluteos: 'diag', abdomen: 'diag', espalda: 'diag' };
+  function fiberD(r, mode, n) {
+    const e1 = r.e1, e2 = r.e2, m = Math.min(e1.length, e2.length);
+    if (!mode || m < 2) return ribFibers(r, n);
+    const at = (e, f) => { const i = Math.min(m - 2, Math.max(0, Math.floor(f))); return lp(e[i], e[i + 1], Math.min(1, Math.max(0, f - i))); };
+    const cnt = n + 3, skew = mode === 'diag' ? .28 : 0;
+    let d = '';
+    for (let k = 0; k < cnt; k++) {
+      const f = (m - 1) * (k + .5) / cnt, a = at(e1, f), b = at(e2, Math.min(m - 1, f + (m - 1) * skew));
+      d += `M${pt(lp(a, b, .1))}L${pt(lp(a, b, .9))}`;
+    }
+    return d;
+  }
   function muscleSvg(rib, id, far, A, fib) {
     const S = A.S, lv = mlevel(S, id), u = A.u;
     const d = ribPath(rib);
     const fill = (lv === 2 ? 'aA' : lv === 1 ? 'aS' : 'aM') + (far ? 'f' : '') + u;
     let s = `<path d="${d}" fill="url(#${fill})" stroke="${lv === 2 ? '#74000f' : lv === 1 ? '#a43a4c' : '#59636f'}" stroke-width=".7" stroke-linejoin="round"/>`;
-    if (fib && !S.lite) s += `<path d="${ribFibers(rib, fib)}" fill="none" stroke="${lv === 2 ? 'rgba(88,0,14,.5)' : lv === 1 ? 'rgba(120,30,50,.42)' : 'rgba(40,50,68,.36)'}" stroke-width=".55" stroke-linecap="round"/>`;
+    if (fib && !S.lite) {
+      const fd = fiberD(rib, FIBMODE[id], fib), c = A.c || 0;
+      s += `<path d="${fd}" fill="none" stroke="${lv === 2 ? 'rgba(88,0,14,.5)' : lv === 1 ? 'rgba(120,30,50,.42)' : 'rgba(40,50,68,.36)'}" stroke-width=".55" stroke-linecap="round"/>`;
+      if (lv && c > .04) {      // las fibras se encienden en carmesí al acercarse al punto máximo (B)
+        if (lv === 2 && !far) s += `<g filter="url(#aF${u})" opacity="${f1(c * (.55 + .35 * A.pu))}"><path d="${fd}" fill="none" stroke="#ff3347" stroke-width="1.6" stroke-linecap="round"/></g>`;
+        s += `<path d="${fd}" fill="none" stroke="${lv === 2 ? 'rgba(255,96,112,' : 'rgba(255,176,190,'}${f1((.16 + .62 * c) * (lv === 2 ? 1 : .5))})" stroke-width="${f1(.5 + .35 * c)}" stroke-linecap="round"/>`;
+      }
+    }
     if (RIM[id] && !far && !S.lite) {
       const mean = e => e.reduce((a, q) => a + q[0] + q[1], 0) / e.length;
       const e = RIM[id] === 'e1' ? rib.e1 : (mean(rib.e1) <= mean(rib.e2) ? rib.e1 : rib.e2);   // 'top' = borde más cercano a la luz (arriba-izquierda)
@@ -701,7 +731,20 @@
     return o + f;
   }
   // Sombra suave de oclusión (penumbra) alrededor de una pieza que queda delante de otra
-  const shadowStroke = ds => ds.map(d => `<path d="${d}" fill="none" stroke="#04070c" stroke-width="7.5" stroke-linejoin="round" opacity=".08"/><path d="${d}" fill="none" stroke="#04070c" stroke-width="4" stroke-linejoin="round" opacity=".14"/>`).join('');
+  // (la luz viene de arriba-izquierda: la penumbra se desplaza un poco hacia abajo-derecha)
+  const shadowStroke = ds => ds.map(d => `<g transform="translate(1.1 1.7)"><path d="${d}" fill="none" stroke="#04070c" stroke-width="10" stroke-linejoin="round" opacity=".05"/><path d="${d}" fill="none" stroke="#04070c" stroke-width="6.5" stroke-linejoin="round" opacity=".09"/><path d="${d}" fill="none" stroke="#04070c" stroke-width="3.2" stroke-linejoin="round" opacity=".15"/></g>`).join('');
+  // Oclusión ambiental en los pliegues (rodilla y cadera flexionadas, en perfil)
+  const dirn = (a, b) => { const x = b[0] - a[0], y = b[1] - a[1], l = Math.hypot(x, y) || 1; return [x / l, y / l]; };
+  const angBetween = (v, w) => Math.acos(Math.max(-1, Math.min(1, v[0] * w[0] + v[1] * w[1]))) * 180 / Math.PI;
+  function foldShade(J, Hp, K, An, A, far) {
+    let s = '';
+    const fold = (c, r, o) => `<circle cx="${f1(c[0])}" cy="${f1(c[1])}" r="${f1(r)}" fill="url(#aO${A.u})" opacity="${f1(Math.min(1, o) * (far ? .8 : 1))}"/>`;
+    const u1 = dirn(K, Hp), u2 = dirn(K, An), ak = angBetween(u1, u2);
+    if (ak < 140) { const st = Math.min(1, (140 - ak) / 80), b = dirn([0, 0], [u1[0] + u2[0], u1[1] + u2[1]]); s += fold([K[0] + b[0] * 4.6, K[1] + b[1] * 4.6], 5 + 5 * st, .4 + .6 * st); }
+    const tv = dirn(J.P, J.neck), th = dirn(Hp, K), ah = angBetween(tv, th);
+    if (ah < 135) { const st = Math.min(1, (135 - ah) / 70), b = dirn([0, 0], [tv[0] + th[0], tv[1] + th[1]]); s += fold([Hp[0] + b[0] * 6.5, Hp[1] + b[1] * 6.5], 6 + 5 * st, .35 + .6 * st); }
+    return s;
+  }
   // Tendón perla/titanio claro con brillo
   function tendon(pts, w, full) {
     const d = smoothPath(pts, false);
@@ -726,14 +769,19 @@
       s += mu(Hp, K, T.hamF, 'isquios', 1) + mu(Hp, K, T.hamFi, 'isquios', 1) + mu(K, An, T.gastroOF, 'pantorrillas', 2) + mu(K, An, T.gastroIF, 'pantorrillas', 2)
         + mu(K, An, T.tibF, 'tibial', 1) + mu(Hp, K, T.vlF, 'cuadriceps', 3) + mu(Hp, K, T.vmF, 'cuadriceps', 2) + mu(Hp, K, T.rfF, 'cuadriceps', 2);
       s += tendon([P(Hp, K, .84, 0), P(Hp, K, 1, 0), P(K, An, .15, 0)], 1.9, full) + (full ? tendon([P(Hp, K, .06, 7.6), P(Hp, K, .5, 8.2), P(Hp, K, .96, 5.4)], 1.1, full) : '');
-      s += ellip(F, 4.4, 2.7, `url(#aH${u})`, 0, ' stroke="#4d5663" stroke-width=".6"');
+      const fx = (a, b) => [F[0] + a * m, F[1] + b];
+      s += `<path d="${smoothPath([fx(-4.2, -1.8), fx(-1, -3), fx(3.2, -2.4), fx(5.4, -.2), fx(4.6, 2.2), fx(1.2, 3), fx(-3.8, 2)], true)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".6" stroke-linejoin="round"/>`;
+      if (full) s += `<path d="M${pt(fx(-2.4, -1.6))}Q${pt(fx(0, -2.6))} ${pt(fx(2.8, -1.8))}" fill="none" stroke="rgba(255,255,255,.6)" stroke-width=".7" stroke-linecap="round"/>`
+        + `<path d="M${pt(fx(1.4, 1))}L${pt(fx(1.8, 2.8))}M${pt(fx(3.2, .6))}L${pt(fx(3.9, 2.2))}" fill="none" stroke="rgba(40,50,68,.45)" stroke-width=".5" stroke-linecap="round"/>`;
     } else {
       s += mu(Hp, K, T.hamS, 'isquios', 3) + mu(K, An, T.calfS, 'pantorrillas', 3) + mu(K, An, T.soleusS, 'pantorrillas', 1) + mu(K, An, T.tibS, 'tibial', 1) + mu(Hp, K, T.quadS, 'cuadriceps', 3);
       s += tendon([P(Hp, K, .86, 4.4), P(Hp, K, 1, 5.0), P(K, An, .14, 4.1)], 1.9, full) + tendon([P(Hp, K, .84, -3.9), P(Hp, K, 1, -4.5), P(K, An, .1, -4.7)], 1.5, full);
       s += `<path d="${ribPath(boneRib(An, F, [[-.3, 2.6, -3.2], [.15, 3.8, -3.2], [.6, 3.2, -2.6], [1, 1.8, -1.8]], 1, 1))}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".6" stroke-linejoin="round"/>`;
+      if (full) s += `<path d="M${pt(bp(An, F, .72, 3, 1, 1))}L${pt(bp(An, F, .72, -2.2, 1, 1))}M${pt(bp(An, F, .88, 2.3, 1, 1))}L${pt(bp(An, F, .88, -1.6, 1, 1))}" fill="none" stroke="rgba(40,50,68,.45)" stroke-width=".5" stroke-linecap="round"/>`
+        + `<path d="M${pt(bp(An, F, .12, 3.4, 1, 1))}L${pt(bp(An, F, .62, 3.6, 1, 1))}" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".7" stroke-linecap="round"/>`;
     }
     const kc = P(Hp, K, 1, fr ? 0 : 4.7);                       // rótula integrada (perla, sin contorno de "bola")
-    return s + pearl(kc, 3.1 * kk, 2.5 * kk, axAng(Hp, K), A) + circ(kc, .8, S.acc);
+    return s + (!fr && full ? foldShade(J, Hp, K, An, A, far) : '') + pearl(kc, 3.1 * kk, 2.5 * kk, axAng(Hp, K), A) + circ(kc, .8, S.acc);
   }
 
   function anArm(J, k, far, S, T, A, sh) {
@@ -753,7 +801,25 @@
     s += pearl(P(Sh, E, .45, 0), 3, 1.3, axAng(Sh, E), A);                                   // inserción del deltoides
     const ec = P(Sh, E, 1, fr ? 0 : -3.9);
     s += pearl(ec, 2.4 * kk, 2 * kk, axAng(Sh, E), A) + circ(ec, .7, S.acc);                  // olécranon / pliegue del codo
-    return s + `<ellipse cx="${f1(Wr[0])}" cy="${f1(Wr[1])}" rx="${f1(S.handR)}" ry="${f1(S.handR * 1.12)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".6"/>`;
+    return s + anHand(E, Wr, m, S, A, fr, far);
+  }
+  // Mano estilizada: muñeca, palma, nudillos, dedos agrupados y pulgar (orientada según el antebrazo)
+  function anHand(E, Wr, m, S, A, fr, far) {
+    const u = A.u, sc = S.handR / 4.6, full = !S.lite, dr = dirn(E, Wr);
+    const a0 = [Wr[0] - dr[0] * 3.2 * sc, Wr[1] - dr[1] * 3.2 * sc], a1 = [Wr[0] + dr[0] * 7.4 * sc, Wr[1] + dr[1] * 7.4 * sc];
+    const w = fr ? .82 : 1;
+    const palm = boneRib(a0, a1, [[0, 2.3 * sc * w, -2.3 * sc * w], [.2, 3.0 * sc * w, -2.8 * sc * w], [.5, 3.5 * sc * w, -3.3 * sc * w], [.78, 3.3 * sc * w, -3.1 * sc * w], [.94, 2.5 * sc * w, -2.3 * sc * w], [1, 1.2 * sc * w, -1.2 * sc * w]], m, 1);
+    let s = `<path d="${ribPath(palm)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".6" stroke-linejoin="round"${far ? ' opacity=".92"' : ''}/>`;
+    // pulgar
+    const t0 = lp(a0, a1, .22), t1 = lp(a0, a1, .56), nx = -dr[1] * m, ny = dr[0] * m;
+    const T0 = [t0[0] + nx * 2.4 * sc * w, t0[1] + ny * 2.4 * sc * w], T1 = [t1[0] + nx * 4.4 * sc * w, t1[1] + ny * 4.4 * sc * w];
+    s += `<path d="${ribPath(boneRib(T0, T1, [[0, 1.7 * sc, -1.7 * sc], [.6, 1.6 * sc, -1.5 * sc], [1, .9 * sc, -.9 * sc]], 1, 1))}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".5" stroke-linejoin="round"/>`;
+    if (full) {
+      const q = (t, o) => [a0[0] + (a1[0] - a0[0]) * t + nx * o * sc * w, a0[1] + (a1[1] - a0[1]) * t + ny * o * sc * w];
+      s += `<path d="M${pt(q(.62, 1.4))}L${pt(q(.96, 1.1))}M${pt(q(.62, -.2))}L${pt(q(.98, -.2))}M${pt(q(.6, -1.7))}L${pt(q(.94, -1.4))}" fill="none" stroke="rgba(40,50,68,.45)" stroke-width=".45" stroke-linecap="round"/>`
+        + `<path d="M${pt(q(.5, 2.8))}Q${pt(q(.55, 0))} ${pt(q(.5, -2.8))}" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".6" stroke-linecap="round"/>`;
+    }
+    return s;
   }
 
   function anTorso(J, p, S, T, A, sh) {
@@ -824,8 +890,12 @@
     let tail = '', cap = '', tie = '';
     if (fem) {
       if (front) {
-        tail = `<path d="${ribPath(taperRib(cubic(Q(.78, .78), Q(1.5, .5 + wv), Q(1.42, -.55), Q(.98, -1.3), 6), r * .5, r * .13))}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
+        // vista frontal: recogido alto (moño) centrado detrás de la cabeza; la coleta de perfil no se toca
+        const bc = [wv * .5, 1.2];
+        tail = E(bc[0], bc[1], .5, .4, `url(#aHr${u})`, 0, ' stroke="#2a313b" stroke-width=".7"')
+          + `<path d="M${pt(Q(bc[0] - .3, bc[1] + .16))}Q${pt(Q(bc[0], bc[1] + .3))} ${pt(Q(bc[0] + .3, bc[1] + .14))}M${pt(Q(bc[0] - .22, bc[1] - .06))}Q${pt(Q(bc[0], bc[1] + .06))} ${pt(Q(bc[0] + .24, bc[1] - .1))}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width=".6" stroke-linecap="round"/>`;
         cap = `<path d="${poly([[-.92, .5], [-.6, 1.02], [0, 1.12], [.6, 1.02], [.92, .5], [.78, .2], [.4, .62], [0, .7], [-.4, .62], [-.78, .2]], true)}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
+        tie = E(0, 1.04, .34, .07, `url(#aT${u})`, 0, ' stroke="#8a94a3" stroke-width=".5"');
       } else {
         tail = `<path d="${ribPath(taperRib(cubic(Q(-.9, .52), Q(-1.7, .42 + wv), Q(-1.85, -.5 + wv * 1.4), Q(-1.4, -1.35 + wv), 6), r * .5, r * .13))}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
         cap = `<path d="${poly([[.8, .78], [.35, 1.1], [-.35, 1.08], [-.93, .55], [-.98, -.02], [-.72, -.38], [-.4, -.06], [-.1, .35], [.35, .66]], true)}" fill="url(#aHr${u})" stroke="#2a313b" stroke-width=".7" stroke-linejoin="round"/>`;
@@ -841,15 +911,19 @@
     s += `<path d="${poly(outline, true)}" fill="url(#aH${u})" stroke="#4d5663" stroke-width=".9" stroke-linejoin="round"/>`;
     // planos faciales: arco supraciliar, cuencas, pómulos, mandíbula, nariz y boca
     if (front) {
-      s += E(0, .62, .42, .2, light + '.26)');
+      // sombreado suave: capas translúcidas desenfocadas (cejas, cuencas, pómulos y línea de mandíbula)
+      let fs = E(0, .62, .44, .22, light + '.22)');
       for (const sg of [-1, 1]) {
-        s += `<path d="M${pt(Q(sg * .14, .3))} Q${pt(Q(sg * .46, .46))} ${pt(Q(sg * .82, .3))}" fill="none" stroke="${dark}.38)" stroke-width="2.2" stroke-linecap="round"/>`
-          + `<path d="M${pt(Q(sg * .14, .34))} Q${pt(Q(sg * .46, .5))} ${pt(Q(sg * .82, .34))}" fill="none" stroke="${light}.6)" stroke-width="1" stroke-linecap="round"/>`
-          + E(sg * .36, .14, .21, .1, dark + '.5)') + E(sg * .58, -.12, .24, .14, light + '.3)', sg * -20) + E(sg * .5, -.46, .2, .12, dark + '.2)')
-          + `<path d="M${pt(Q(sg * .1, .22))} L${pt(Q(sg * .13, -.26))}" fill="none" stroke="${dark}.4)" stroke-width="1"/>` + E(sg * .17, -.3, .07, .04, dark + '.55)')
-          + `<path d="M${pt(Q(sg * .82, -.28))} L${pt(Q(sg * .62, -.72))} L${pt(Q(sg * .2, -.97))}" fill="none" stroke="${dark}.5)" stroke-width=".9" stroke-linejoin="round"/>`;
+        fs += `<path d="M${pt(Q(sg * .14, .3))} Q${pt(Q(sg * .46, .46))} ${pt(Q(sg * .82, .3))}" fill="none" stroke="${dark}.22)" stroke-width="2.8" stroke-linecap="round"/>`
+          + `<path d="M${pt(Q(sg * .14, .34))} Q${pt(Q(sg * .46, .5))} ${pt(Q(sg * .82, .34))}" fill="none" stroke="${light}.45)" stroke-width="1.1" stroke-linecap="round"/>`
+          + E(sg * .36, .14, .26, .14, dark + '.14)') + E(sg * .36, .14, .18, .08, dark + '.3)') + E(sg * .33, .165, .05, .026, light + '.5)')
+          + E(sg * .58, -.12, .26, .15, light + '.24)', sg * -20) + E(sg * .5, -.46, .22, .13, dark + '.14)')
+          + `<path d="M${pt(Q(sg * .1, .22))} L${pt(Q(sg * .13, -.26))}" fill="none" stroke="${dark}.26)" stroke-width="1.2" stroke-linecap="round"/>` + E(sg * .17, -.3, .07, .04, dark + '.4)')
+          + `<path d="M${pt(Q(sg * .82, -.28))} Q${pt(Q(sg * .74, -.58))} ${pt(Q(sg * .5, -.84))} T${pt(Q(sg * .2, -.97))}" fill="none" stroke="${dark}.12)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`
+          + `<path d="M${pt(Q(sg * .82, -.28))} Q${pt(Q(sg * .74, -.58))} ${pt(Q(sg * .5, -.84))} T${pt(Q(sg * .2, -.97))}" fill="none" stroke="${dark}.26)" stroke-width=".8" stroke-linecap="round" stroke-linejoin="round"/>`;
       }
-      s += E(0, -.2, .1, .08, light + '.4)') + `<path d="M${pt(Q(-.26, -.52))} Q${pt(Q(0, -.58))} ${pt(Q(.26, -.52))}" fill="none" stroke="${dark}.55)" stroke-width=".9" stroke-linecap="round"/>` + E(0, -.64, .16, .05, light + '.22)') + E(0, -.82, .24, .14, light + '.18)');
+      fs += E(0, -.2, .1, .08, light + '.34)') + `<path d="M${pt(Q(-.26, -.52))} Q${pt(Q(0, -.58))} ${pt(Q(.26, -.52))}" fill="none" stroke="${dark}.4)" stroke-width="1" stroke-linecap="round"/>` + E(0, -.64, .16, .05, light + '.2)') + E(0, -.82, .24, .14, light + '.16)');
+      s += full ? `<g filter="url(#aE${u})">${fs}</g>` : fs;
     } else {
       s += E(-.75, .2, .24, .5, dark + '.16)') + E(.2, .72, .6, .2, light + '.2)', -8);
       s += `<path d="M${pt(Q(.42, .34))} Q${pt(Q(.72, .44))} ${pt(Q(.97, .27))}" fill="none" stroke="${dark}.38)" stroke-width="2.2" stroke-linecap="round"/>`
@@ -1075,6 +1149,7 @@
       this.S = resolveSpec(this.charId, this.accentId);
       applyVars(this.el, this.S);
       if (this.S.kind === 'anatomy') this._anatDefs();
+      { const vb = ANIMS[this.animKey].vb; this.svg.setAttribute('viewBox', vb ? vb.join(' ') : `0 0 ${W} ${H}`); }   // poses muy largas (Superman) usan un encuadre más ancho
       this._prepare();
       this.t0 = performance.now();
       this._render(0);
@@ -1162,8 +1237,17 @@
         const pu = .5 + .5 * Math.sin(now / 260);
         S.lite = !!this.lite;
         if (this.glowFe) this.glowFe.setAttribute('stdDeviation', f1(S.lite ? 2 : 2.2 + 2 * pu));   // resplandor pulsante
+        // progreso hacia el punto máximo (B): 0 = pose A, 1 = pose B (alimenta el brillo de las fibras)
+        const kA = a.kf[0], kB = a.kf[this.idxB || 0]; let dAB = 0, dP = 0;
+        for (const k of KEYS) { if (k === 'j' || k === 'hd') continue; dAB += Math.abs((kB[k] || 0) - (kA[k] || 0)); dP += Math.abs((p[k] || 0) - (kA[k] || 0)); }
+        const cn = dAB > 4 ? Math.min(1, dP / dAB) : 0;
+        // sombra de piso dinámica: se ensancha con el cuerpo y se atenúa/encoge con la elevación
+        const bb = bounds(J, S), elev = Math.max(0, GROUND - 6 - bb.maxY), el = Math.min(elev, 70) / 70;
+        const sw = Math.max(24, Math.min(88, (bb.maxX - bb.minX) * .5)) * (1 - .35 * el), sh = (3.6 + (bb.maxX - bb.minX > 110 ? .8 : 0)) * (1 - .3 * el), so = 1 - .75 * el;
+        const scx = f1((bb.minX + bb.maxX) / 2);
+        b = `<ellipse cx="${scx}" cy="${GROUND}" rx="${f1(sw * 1.22)}" ry="${f1(sh * 1.5)}" class="av-shadow" opacity="${f1(.45 * so)}"/><ellipse cx="${scx}" cy="${GROUND}" rx="${f1(sw)}" ry="${f1(sh)}" class="av-shadow" opacity="${f1(so)}"/>`;
         const t0 = performance.now();
-        b += drawAnatomy(J, p, S, tm, { S, u: this.uid, glow: [], pu });
+        b += drawAnatomy(J, p, S, tm, { S, u: this.uid, glow: [], pu, c: cn });
         const cost = performance.now() - t0;   // coste real de construir el dibujo: si es alto, modo ligero
         this.costEma = this.costEma ? this.costEma * .9 + cost * .1 : cost;
         if (!this.lite && this.costEma > 12) this.lite = true;

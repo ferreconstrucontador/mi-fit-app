@@ -106,6 +106,14 @@ Equipo `escaladora` ("Escaladora vertical / Stepper", categoría *Cardio* de Mi 
 
 Multiplicador por RPE: Fácil ×0.90 · Justo ×1.00 · Muy pesado ×1.15. El resumen muestra el total redondeado con la nota "Estimado según tu peso, tiempo activo e intensidad"; en `MiFitDB` (`workouts`) se guarda `kcal`, `kcalPeso` y `kcalDet` (desglose por ejercicio) para las gráficas de Progreso. Los entrenamientos anteriores no se modifican.
 
+## 🫀 Pulido de los Anatómicos y posturas (v1.5.2)
+
+- **Posturas corregidas (todos los avatares):** *Lagartija con rodillas apoyadas* (rodillas fijas en el piso, pantorrillas y pies elevados hacia atrás; manos y rodillas a la misma altura en A y B) y *Superman* (anim `superman`: boca abajo con abdomen apoyado, brazos y piernas extendidos que se elevan en arco; usa un encuadre más ancho). *Cobra suave* y *Y-T-W* conservan la animación `cobra`.
+- **Anatómico Mujer:** en vistas frontales la coleta se dibuja como moño alto centrado; en perfil sigue igual.
+- **Rostro y manos:** sombreado facial suave (cejas, cuencas, pómulos y mandíbula con desenfoque ligero), manos esculpidas (palma, nudillos, dedos y pulgar orientados al antebrazo) y pies con dedos y empeine.
+- **Fibras y volumen:** fibras orientadas por grupo (largas, abanico en pectoral, oblicuas en deltoides/glúteos/oblicuos/dorsales) que se encienden en carmesí con un brillo `feGaussianBlur` al acercarse al Punto Máximo (B); oclusión en pliegues de rodilla y cadera, penumbra con dirección de luz y sombra de piso dinámica según el ancho y la elevación del cuerpo.
+- Los otros 12 avatares no cambian (verificado con huellas SHA-256), salvo las dos posturas anteriores. Se mantiene el límite de ~30 fps y el modo ligero.
+
 ## 🔍 Catálogo de Ejercicios (visor)
 
 En **Perfil** (y en **Progreso → Manual**) está el botón **🔍 Catálogo de Ejercicios (140)**. Abre una vista de pantalla completa para inspeccionar cualquier ejercicio sin esperar a que salga en una rutina:

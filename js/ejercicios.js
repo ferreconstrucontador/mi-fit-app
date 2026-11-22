@@ -152,7 +152,7 @@
 
     // ===== Tirón horizontal =====
     { id: 'ytw', n: 'Y-T-W boca abajo', g: 'Espalda', p: 'tiron_h', eq: [], lv: 1, ci: [], t: 'r', b: 10, a: 'cobra', met: 3, m: 'Espalda alta, deltoide posterior', tip: 'Frente cerca del piso; dibuja Y, T y W con los brazos.', f: 'p' },
-    { id: 'superman', n: 'Superman', g: 'Espalda', p: 'tiron_h', eq: [], lv: 1, ci: ['espalda'], t: 'r', b: 12, a: 'cobra', met: 3.5, m: 'Erectores, glúteos', tip: 'Eleva brazos y piernas a la vez, mirada al piso.', f: 'p' },
+    { id: 'superman', n: 'Superman', g: 'Espalda', p: 'tiron_h', eq: [], lv: 1, ci: ['espalda'], t: 'r', b: 12, a: 'superman', met: 3.5, m: 'Erectores, glúteos', tip: 'Eleva brazos y piernas a la vez, mirada al piso.', f: 'p' },
     { id: 'remo_liga', n: 'Remo con liga', g: 'Espalda', p: 'tiron_h', eq: ['liga_tubular'], lv: 1, ci: [], t: 'r', b: 15, a: 'bandrow', met: 4, m: 'Dorsales, romboides, bíceps', tip: 'Jala los codos atrás y junta escápulas.', f: 'p' },
     { id: 'face_pull_liga', n: 'Face pull con liga', g: 'Espalda', p: 'tiron_h', eq: ['liga_tubular'], lv: 1, ci: [], t: 'r', b: 15, a: 'bandrow', met: 3.5, m: 'Deltoide posterior, manguito', tip: 'Jala hacia la cara abriendo los codos.', f: 'p' },
     { id: 'aperturas_liga', n: 'Aperturas de liga (pull-apart)', g: 'Espalda', p: 'tiron_h', eq: ['liga_tubular'], lv: 1, ci: [], t: 'r', b: 15, a: 'pullapart', met: 3, m: 'Romboides, deltoide posterior', tip: 'Brazos extendidos a la altura del pecho.', f: 'p' },
