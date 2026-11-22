@@ -10,8 +10,8 @@ Todo funciona **100% sin internet** y los datos se quedan en tu teléfono.
 | `index.html` | Estructura semántica: 5 pestañas, reproductor, modal y tour |
 | `css/styles.css` | Temas Claro / Oscuro / Automático y diseño responsivo pensado para móvil |
 | `js/app.js` | Navegación nativa (History API), almacenamiento, perfil, gimnasio, rutina, Gemini, cronómetro, voz, Wake Lock, RPE, progreso, respaldo, tour |
-| `js/ejercicios.js` | Catálogo de equipo, base de ~130 ejercicios, filtros por equipo, nivel y lesiones, y el generador de rutinas |
-| `js/avatar.js` | Motor del avatar SVG (cinemática 2D): 81 animaciones, accesorios y **12 personajes** sobre el mismo esqueleto |
+| `js/ejercicios.js` | Catálogo de equipo, 136 ejercicios con sus músculos y guía de postura, filtros por equipo, nivel y lesiones, y el generador de rutinas |
+| `js/avatar.js` | Motor del avatar SVG (cinemática 2D): 81 animaciones, accesorios, **14 personajes** sobre el mismo esqueleto, músculos iluminados, poses A/B, marcadores guía y piso de estudio |
 | `manifest.json` · `sw.js` | Instalación como app nativa y uso sin conexión |
 | `icons/` | Íconos SVG y PNG (192, 512 y maskable) |
 
@@ -27,17 +27,29 @@ Todo funciona **100% sin internet** y los datos se quedan en tu teléfono.
 > Todas las rutas son relativas (`./`), así que funciona en cualquier subcarpeta. El archivo `.nojekyll` evita que GitHub procese los archivos.
 > Para probar en tu computadora: `python3 -m http.server 8000` y abre `http://localhost:8000` (el Service Worker no funciona si abres el archivo directamente con `file://`).
 
-## 🎭 Entrenadores (12 personajes)
+## 🎭 Entrenadores (14 personajes)
 
 Se eligen en **Perfil → Mi entrenador** o con el botón **🎭 Entrenador** de Mi Rutina y de Entrenar. Hay 6 colores de acento (naranja, azul, verde neón, morado, rosa coral y negro/gris) que cambian ropa, cintas y luces. La elección se guarda en `localStorage` (`personaje` y `acento` dentro de `mifit_settings`) y va en el respaldo `.json` (campo `entrenador`).
 
 - **Humanos:** Atleta Masculino, Atleta Femenina, Fuerza / Robusto, Zen / Estilizado, Ninja / Agilidad, Retro 80s.
 - **Mascotas:** Gorila Fuerza, Zorrito Atleta, Jaguar Maya, Panda Fitness.
 - **Objetos:** Fit-Bot (androide con juntas luminosas) y Maniquí Articulado.
+- **Anatómicos:** Anatómico Hombre y Anatómico Mujer (figura plateada). Durante cada ejercicio iluminan en **rojo intenso con pulso** los músculos principales y en **rojo suave** los secundarios (pecho, espalda/dorsales, hombros, bíceps, tríceps, abdomen, glúteos, cuádriceps, isquiotibiales y pantorrillas). Los músculos de cada ejercicio están en `MUS_ID` y `MUS_PATRON` (`js/ejercicios.js`), con el formato `'principales|secundarios'` y códigos de 2 letras (`pe es ho bi tr ab gl cu is pa`): un ejercicio sin entrada propia hereda los de su patrón de movimiento.
 
 Todos comparten el mismo esqueleto, así que ejecutan las 81 animaciones y sostienen ligas, mancuernas, barra, cuerda, TRX y silla. Si un ejercicio no tuviera pose, el avatar hace marcha en el lugar (`FALLBACK_ANIM`) en vez de quedarse quieto.
 
 **Agregar un personaje:** añade una entrada a `CHARS` en `js/avatar.js` (`b` = proporciones, `col` = colores en función del acento, `head` = tipo de cabeza). Si es un tipo de cabeza nuevo, agrégalo a `drawHead`.
+
+## 🧍 Preparación de 10 segundos y guía de postura
+
+Antes de **cada** ejercicio hay una preparación de 10 s exactos (`PREP_SECS`): el avatar queda en la **pose inicial (A)** con puntos luminosos en las articulaciones a cuidar y flechas de movimiento, más una tarjeta con *Posición inicial*, *Ejecución* y *Error común a evitar*. La voz lee la posición inicial. Controles: **⏭️ Empezar ya** (salta la cuenta), **A / B** (pose inicial / punto máximo; en B la cuenta se pausa) y **🧍 Postura inicial** (consulta en cualquier momento; pausa mientras se revisa).
+
+- **Textos:** `GUIA_PATRON` (por patrón de movimiento) y `GUIA_ID` (por ejercicio) en `js/ejercicios.js`. La *Ejecución* es el `tip` de cada ejercicio. Mantén la posición inicial en ~14 palabras para que la voz termine antes de la cuenta de 3 s.
+- **Marcadores:** `['pt'|'spine'|'span', articulación, etiqueta]`; las articulaciones son `K` rodillas, `A` pies, `W` manos, `E` codos, `S` hombros y `H` cadera. Las poses A y B salen de los fotogramas de la animación y las flechas se calculan solas.
+
+## 🎯 Vista Enfoque / Estudio
+
+El botón 🎯 del entrenamiento alterna entre la vista clásica y la Vista Enfoque: fondo de estudio oscuro con piso cálido, **`03 x 12`** (series × repeticiones) o el tiempo restante en tipografía gigante, cronómetro discreto debajo y el avatar a gran tamaño. La elección se guarda (`enfoque` en `mifit_settings`).
 
 ## 🔄 Actualizar la app (versionado)
 

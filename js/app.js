@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.1.0'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.2.0'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -38,7 +38,7 @@
   };
 
   const DEF_PROFILE = { edad: 30, sexo: 'm', peso: 70, estatura: 170, nivel: 'principiante', dias: 3, objetivo: 'hipertrofia', lesiones: [] };
-  const DEF_SETTINGS = { genero: 'm', personaje: '', acento: 'naranja', voz: true, vibra: true, beep: true, duracion: 30, apiKey: '', sesion: 0 };
+  const DEF_SETTINGS = { genero: 'm', personaje: '', acento: 'naranja', enfoque: false, voz: true, vibra: true, beep: true, duracion: 30, apiKey: '', sesion: 0 };
 
   const S = {
     profile: Object.assign({}, DEF_PROFILE, LS.get(K.profile, {})),
@@ -395,7 +395,7 @@
     // Miniaturas estáticas del avatar (sin animación para ahorrar batería)
     $$('#rutinaLista .ex-thumb').forEach(el => {
       const card = el.closest('.ex-card'); const it = r.items[+card.dataset.idx]; const e = DB.BY_ID[it.id];
-      const a = new Avatar(el, { anim: e.a, ...avOpts(), props: propsFor(e.eq) });
+      const a = new Avatar(el, { anim: e.a, ...avOpts(), props: propsFor(e.eq), muscles: e.mus });
       a.stop(); a.renderAt(0.5); thumbAvatars.push(a);
     });
   }
@@ -426,7 +426,7 @@
     const body = openModal(e.n, `<div class="avatar-box" id="mvAvatar"></div>
       <p><b>🎯 Músculos:</b> ${esc(e.m)}</p><p><b>✅ Técnica:</b> ${esc(e.tip)}</p>
       <p class="hint">Equipo: ${e.eq.length ? e.eq.map(q => DB.EQUIPO_NOMBRE[q]).join(' + ') : 'Peso corporal'} · Nivel ${'⭐'.repeat(e.lv)}${les ? ` · Precaución: ${esc(les)}` : ''}</p>`);
-    modalAvatars.push(new Avatar(body.querySelector('#mvAvatar'), { anim: e.a, ...avOpts(), props: propsFor(e.eq) }));
+    modalAvatars.push(new Avatar(body.querySelector('#mvAvatar'), { anim: e.a, ...avOpts(), props: propsFor(e.eq), muscles: e.mus }));
   }
 
   // ---------- Gemini (opcional) ----------
@@ -501,6 +501,10 @@ Usa "reps" o "segundos" (el otro en null).`;
   //  GALERÍA DE ENTRENADORES (12 personajes sobre el mismo esqueleto)
   // =========================================================================
   const PREVIEW_ANIMS = ['jack', 'squat', 'curl', 'lunge', 'press', 'shadowbox'];
+  // En los anatómicos la vista previa ilumina los músculos de cada movimiento
+  const PREVIEW_ANAT = [{ a: 'squat', m: DB.parseMus('cu,gl|is,ab') }, { a: 'curl', m: DB.parseMus('bi|ho') }, { a: 'press', m: DB.parseMus('ho,tr|pe') },
+    { a: 'pushup', m: DB.parseMus('pe,tr|ho,ab') }, { a: 'lunge', m: DB.parseMus('cu,gl|is,pa') }, { a: 'jack', m: DB.parseMus('ho,cu|pa,gl') }];
+  const THUMB_MUS = DB.parseMus('pe,ho,cu|ab,bi,pa');
   let galTab = null;
 
   function renderGallery(root, opts = {}) {
@@ -516,9 +520,9 @@ Usa "reps" o "segundos" (el otro en null).`;
       <div class="swatches" role="group" aria-label="Color de acento">${ACCENTS.map(a => `<button class="sw ${a.id === S.settings.acento ? 'on' : ''}" style="--c:${a.c}" data-acc="${a.id}" aria-pressed="${a.id === S.settings.acento}" aria-label="${esc(a.n)}" title="${esc(a.n)}"></button>`).join('')}</div>
       <p class="hint center">${esc(ACCENTS.find(a => a.id === S.settings.acento).n)}</p>`;
     const pv = new Avatar(root.querySelector('.gal-av'), Object.assign({ anim: 'jack' }, avOpts()));
-    pv.cycle(PREVIEW_ANIMS, 3200); root._avs.push(pv);
+    pv.cycle(cur.kind === 'anatomy' ? PREVIEW_ANAT : PREVIEW_ANIMS, 3200); root._avs.push(pv);
     $$('.gal-thumb', root).forEach(el => {
-      const a = new Avatar(el, { anim: 'breathe', char: el.dataset.thumb, accent: S.settings.acento });
+      const a = new Avatar(el, { anim: 'breathe', char: el.dataset.thumb, accent: S.settings.acento, muscles: charById(el.dataset.thumb).kind === 'anatomy' ? THUMB_MUS : null });
       a.stop(); a.renderAt(0.5); root._avs.push(a);
     });
     if (opts.modal) root._avs.forEach(a => modalAvatars.push(a));
@@ -560,8 +564,8 @@ Usa "reps" o "segundos" (el otro en null).`;
     ensureRoutine();
     const r = S.routine; const first = r && r.items.find(i => i.block === 'pri');
     const e = first ? DB.BY_ID[first.id] : null;
-    if (!idleAvatar) idleAvatar = new Avatar($('#avatarIdle'), { anim: e ? e.a : 'breathe', ...avOpts(), props: e ? propsFor(e.eq) : [] });
-    else { idleAvatar.set({ anim: e ? e.a : 'breathe', ...avOpts(), props: e ? propsFor(e.eq) : [] }); idleAvatar.start(); }
+    if (!idleAvatar) idleAvatar = new Avatar($('#avatarIdle'), { anim: e ? e.a : 'breathe', ...avOpts(), props: e ? propsFor(e.eq) : [], muscles: e ? e.mus : null });
+    else { idleAvatar.set({ anim: e ? e.a : 'breathe', ...avOpts(), props: e ? propsFor(e.eq) : [], muscles: e ? e.mus : null }); idleAvatar.start(); }
     $('#coachIdleInfo').innerHTML = r ? `<b>${esc(r.diaNombre)}</b> · ${r.items.length} ejercicios · ~${DB.estimarMinutos(r)} min${e ? `<br>Primer ejercicio fuerte: ${esc(e.n)}` : ''}` : '';
   }
 
@@ -611,18 +615,16 @@ Usa "reps" o "segundos" (el otro en null).`;
   const RING_C = 2 * Math.PI * 52;
   const P = { active: false };
 
+  // Cada ejercicio empieza con 10 s exactos de preparación (guía de postura).
   function buildSteps(r) {
-    const steps = [{ type: 'prep', secs: 10, i: 0 }];
+    const steps = [];
     r.items.forEach((it, i) => {
-      for (let s = 1; s <= it.sets; s++) {
-        steps.push({ type: 'work', i, set: s, sets: it.sets, mode: it.mode, secs: it.secs, reps: it.reps });
-        const last = i === r.items.length - 1 && s === it.sets;
-        if (!last) {
-          const between = s === it.sets;
-          const nextIt = between ? r.items[i + 1] : it;
-          let rest = !between ? it.rest : it.block === 'pri' || nextIt.block === 'pri' ? Math.max(it.block === 'pri' ? it.rest : 15, 15) : 10;
-          steps.push({ type: 'rest', i: between ? i + 1 : i, secs: rest, rpe: between && it.block === 'pri' ? it.id : null });
-        }
+      steps.push({ type: 'prep', secs: DB.PREP_SECS, i });
+      for (let n = 1; n <= it.sets; n++) {
+        steps.push({ type: 'work', i, set: n, sets: it.sets, mode: it.mode, secs: it.secs, reps: it.reps });
+        const lastSet = n === it.sets, lastItem = i === r.items.length - 1;
+        if (!lastSet) steps.push({ type: 'rest', i, secs: it.rest, rpe: null });                                   // entre series
+        else if (!lastItem && it.block === 'pri') steps.push({ type: 'rest', i: i + 1, secs: Math.max(it.rest, 15), rpe: it.id }); // antes del siguiente ejercicio
       }
     });
     return steps;
@@ -634,7 +636,8 @@ Usa "reps" o "segundos" (el otro en null).`;
     unlockAudio();
     Object.assign(P, {
       active: true, steps: buildSteps(S.routine), idx: 0, phaseMs: 0, sessionMs: 0, workMs: 0, last: performance.now(),
-      paused: false, log: [], rpe: {}, said: {}, startedAt: new Date(), routine: JSON.parse(JSON.stringify(S.routine)), kcalW: 0
+      paused: false, log: [], rpe: {}, said: {}, startedAt: new Date(), routine: JSON.parse(JSON.stringify(S.routine)), kcalW: 0,
+      guide: null, guideView: 'A', inspectWasPaused: false
     });
     if (S.tab !== 'entrenador') goTab('entrenador');
     $('#coachIdle').hidden = true; $('#player').hidden = false; $('#plExit').hidden = true;
@@ -642,70 +645,156 @@ Usa "reps" o "segundos" (el otro en null).`;
     if (idleAvatar) idleAvatar.stop();
     if (!liveAvatar) liveAvatar = new Avatar($('#avatarLive'), avOpts());
     liveAvatar.start();
+    applyFocus(S.settings.enfoque, true);
     pushOverlay('player');
     lockScreen();
     $('#plVoice').textContent = S.settings.voz ? '🔊' : '🔇';
     clearInterval(P.timer); P.timer = setInterval(tick, 200);
     enterStep();
-    const first = DB.BY_ID[S.routine.items[0].id];
-    speak(`¡Vamos! Empezamos con ${first.n}. Prepárate.`);
   }
 
   const curStep = () => P.steps[P.idx];
   const itemOf = st => P.routine.items[st.i];
+  const metaItem = it => `${it.sets > 1 ? it.sets + ' series · ' : ''}${it.mode === 'reps' ? it.reps + ' reps' : it.secs + ' s'}`;
+  // Músculos del ejercicio; con avatar anatómico se explica el código de color
+  function musTexto(e) {
+    if (charById(S.settings.personaje).kind !== 'anatomy') return '🎯 ' + e.m;
+    const pr = DB.musNombres(e.mus.p).join(', '), se = DB.musNombres(e.mus.s).join(', ');
+    return `🔴 ${pr}${se ? '  ·  🩷 ' + se : ''}`;
+  }
 
-  function enterStep() {
-    const st = curStep(); P.phaseMs = 0; P.said = {};
+  // ---------- Guía visual de postura (preparación / consulta) ----------
+  function setAB(v) {
+    P.guideView = v;
+    $$('#plAB button').forEach(b => b.classList.toggle('on', b.dataset.ab === v));
+    liveAvatar.showPose(v);
+    $('#plHoldChip').hidden = !(P.guide === 'prep' && v === 'B');   // en B la cuenta regresiva se detiene
+  }
+  function openGuide(it, mode) {
+    const g = DB.BY_ID[it.id].guia;
+    P.guide = mode;
+    $('#player').dataset.guide = 'on';
+    $('#techIni').textContent = g.ini; $('#techEje').textContent = g.eje; $('#techErr').textContent = g.err;
+    liveAvatar.setGuide(g.marks);
+    setAB('A');
+  }
+  function quietPause(v) {
+    P.paused = v; $('#player').classList.toggle('paused', v);
+    $('#plPause').textContent = v ? '▶' : '⏸'; $('#plPause').setAttribute('aria-label', v ? 'Reanudar' : 'Pausar');
+  }
+  // Consultar la postura en cualquier momento (pausa mientras se revisa)
+  function openInspect() {
+    if (!P.active || P.guide) return;
+    const st = curStep(); if (!st || st.type === 'prep') return;
+    P.inspectWasPaused = P.paused;
+    quietPause(true);
+    const it = itemOf(st), e = DB.BY_ID[it.id];
+    $('#plDone').hidden = true; $('#plRestCtrl').hidden = true; $('#plRpe').hidden = true; $('#plNext').hidden = true; $('#plPosture').hidden = true;
+    $('#plBlock').textContent = 'Postura inicial'; $('#plName').textContent = e.n; $('#plSet').textContent = 'Cuenta en pausa';
+    $('#plMuscles').textContent = musTexto(e);
+    liveAvatar.set({ anim: e.a, ...avOpts(), props: propsFor(e.eq), muscles: e.mus });
+    openGuide(it, 'inspect');
+    $('#plGoWrap').hidden = false; $('#plGo').textContent = '▶️ Continuar';
+    speak(`Postura inicial. ${e.guia.ini}`);
+  }
+  function closeInspect() {
+    if (P.guide !== 'inspect') return;
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    quietPause(P.inspectWasPaused);
+    enterStep(true);   // restaura el paso actual sin reiniciar su cronómetro
+  }
+
+  function enterStep(resume) {
+    const st = curStep();
+    if (!resume) { P.phaseMs = 0; P.said = {}; }
+    P.guide = null; P.guideView = 'A';
     const player = $('#player');
-    player.dataset.phase = st.type;
+    player.dataset.phase = st.type; player.dataset.guide = '';
     const it = itemOf(st) || P.routine.items[0]; const e = DB.BY_ID[it.id];
     const blockName = { cal: 'Calentamiento', pri: 'Bloque principal', enf: 'Enfriamiento' }[it.block];
     $('#plRpe').hidden = true; $('#plNext').hidden = true; $('#plDone').hidden = true; $('#plRestCtrl').hidden = true;
+    $('#plGoWrap').hidden = true; $('#plHoldChip').hidden = true;
+    $('#plPosture').hidden = st.type === 'prep';
+    $('#plNextEye').textContent = 'Siguiente';
 
     if (st.type === 'work') {
       $('#plBlock').textContent = blockName;
       $('#plName').textContent = e.n;
       $('#plSet').textContent = st.sets > 1 ? `Serie ${st.set} de ${st.sets}` : (st.mode === 'time' ? 'Por tiempo' : '');
-      $('#plMuscles').textContent = '🎯 ' + e.m;
+      $('#plMuscles').textContent = musTexto(e);
       $('#plTip').textContent = '✅ ' + (it.nota || e.tip);
-      liveAvatar.set({ anim: e.a, ...avOpts(), props: propsFor(e.eq) });
+      liveAvatar.set({ anim: e.a, ...avOpts(), props: propsFor(e.eq), muscles: e.mus });
+      liveAvatar.setGuide(null); liveAvatar.showPose(null);
       liveAvatar.start(); liveAvatar.ensure(); // arranque explícito del bucle al empezar la serie
       if (st.mode === 'reps') {
         $('#plDone').hidden = false;
         $('#plLabel').textContent = `${st.reps} reps`;
-        speak(`${e.n}. ${st.reps} repeticiones.${st.sets > 1 ? ` Serie ${st.set} de ${st.sets}.` : ''}`);
+        if (!resume) speak(`${e.n}. ${st.reps} repeticiones.${st.sets > 1 ? ` Serie ${st.set} de ${st.sets}.` : ''}`);
       } else {
         $('#plLabel').textContent = 'Trabajo';
-        speak(`${e.n}. ${st.secs} segundos.${st.sets > 1 ? ` Serie ${st.set} de ${st.sets}.` : ''} ¡Ya!`);
+        if (!resume) speak(`${e.n}. ${st.secs} segundos.${st.sets > 1 ? ` Serie ${st.set} de ${st.sets}.` : ''} ¡Ya!`);
       }
-      beep(1046, 0.18); vibrate([60, 40, 60]);
+      if (!resume) { beep(1046, 0.18); vibrate([60, 40, 60]); }
+    } else if (st.type === 'prep') {
+      $('#plBlock').textContent = `Prepárate · ${st.i + 1} de ${P.routine.items.length}`;
+      $('#plName').textContent = e.n;
+      $('#plSet').textContent = metaItem(it);
+      $('#plMuscles').textContent = musTexto(e); $('#plTip').textContent = '';
+      liveAvatar.set({ anim: e.a, ...avOpts(), props: propsFor(e.eq), muscles: e.mus });
+      openGuide(it, 'prep');
+      liveAvatar.start(); liveAvatar.ensure();
+      $('#plLabel').textContent = 'Prepárate';
+      $('#plGoWrap').hidden = false; $('#plGo').textContent = '⏭️ Empezar ya';
+      $('#plNext').hidden = false; $('#plNextEye').textContent = 'Vas a hacer';
+      $('#plNextName').textContent = e.n;
+      $('#plNextMeta').textContent = `${it.sets} × ${it.mode === 'reps' ? it.reps + ' reps' : it.secs + ' s'}${it.block === 'pri' ? ' · descanso ' + it.rest + ' s' : ''}`;
+      if (!resume) { speak(`${st.i === 0 ? '¡Vamos! ' : ''}${e.n}. Posición inicial: ${e.guia.ini}`); beep(660, 0.12); vibrate(80); }
     } else {
-      // Descanso o preparación
-      const nxt = P.routine.items[st.i]; const ne = DB.BY_ID[nxt.id];
-      const nextWork = P.steps.slice(P.idx + 1).find(s => s.type === 'work');
-      $('#plBlock').textContent = st.type === 'prep' ? 'Prepárate' : 'Descanso';
-      $('#plName').textContent = st.type === 'prep' ? '¡Prepárate!' : 'Respira y recupera';
-      $('#plSet').textContent = st.type === 'prep' ? 'Ponte en posición' : 'Hidrátate con un trago de agua';
+      // Descanso
+      const ne = e;
+      const nextWork = P.steps.slice(P.idx + 1).find(x => x.type === 'work');
+      $('#plBlock').textContent = 'Descanso';
+      $('#plName').textContent = 'Respira y recupera';
+      $('#plSet').textContent = 'Hidrátate con un trago de agua';
       $('#plMuscles').textContent = '';
-      $('#plTip').textContent = st.type === 'prep' ? '✅ ' + ne.tip : 'Inhala por la nariz, exhala lento por la boca.';
-      liveAvatar.set({ anim: st.type === 'prep' ? ne.a : 'breathe', ...avOpts(), props: st.type === 'prep' ? propsFor(ne.eq) : [] });
-      $('#plLabel').textContent = st.type === 'prep' ? 'Prepárate' : 'Descanso';
+      $('#plTip').textContent = 'Inhala por la nariz, exhala lento por la boca.';
+      liveAvatar.set({ anim: 'breathe', ...avOpts(), props: [], muscles: null });
+      liveAvatar.setGuide(null); liveAvatar.showPose(null);
+      $('#plLabel').textContent = 'Descanso';
       $('#plNext').hidden = false;
       $('#plNextName').textContent = ne.n;
       $('#plNextMeta').textContent = nextWork ? (nextWork.mode === 'reps' ? `${nextWork.reps} reps` : `${nextWork.secs} s`) + (nextWork.sets > 1 ? ` · serie ${nextWork.set}/${nextWork.sets}` : '') : '';
-      if (st.type === 'rest') {
-        $('#plRestCtrl').hidden = false;
-        if (st.rpe) {
-          $('#plRpe').hidden = false; $('#plRpeName').textContent = DB.BY_ID[st.rpe].n;
-          $$('#plRpe button').forEach(b => b.classList.toggle('on', P.rpe[st.rpe] === b.dataset.rpe));
-        }
-        speak(`Descansa ${st.secs} segundos. Siguiente: ${ne.n}.`);
-        beep(660, 0.15); vibrate(120);
+      $('#plRestCtrl').hidden = false;
+      if (st.rpe) {
+        $('#plRpe').hidden = false; $('#plRpeName').textContent = DB.BY_ID[st.rpe].n;
+        $$('#plRpe button').forEach(b => b.classList.toggle('on', P.rpe[st.rpe] === b.dataset.rpe));
       }
+      if (!resume) { speak(`Descansa ${st.secs} segundos. Siguiente: ${ne.n}.`); beep(660, 0.15); vibrate(120); }
     }
     // Progreso global
     $('#plProgressBar').style.width = `${(P.idx / P.steps.length) * 100}%`;
     renderTime();
+  }
+
+  // ---------- Vista Enfoque / Estudio ----------
+  function applyFocus(on, silent) {
+    S.settings.enfoque = !!on; saveSettings();
+    $('#player').classList.toggle('focus', !!on);
+    $('#plFocus').classList.toggle('on', !!on); $('#plFocus').setAttribute('aria-pressed', !!on);
+    if (liveAvatar) liveAvatar.set({ floor: !!on });
+    if (P.active) renderTime();
+    if (!silent) toast(on ? '🎯 Vista Enfoque' : '🖥️ Vista clásica');
+  }
+  function renderFocus(st, el, txt) {
+    const it = itemOf(st);
+    let big = txt, label = '', set = '', sub = 'SESIÓN ' + hhmmss(P.sessionMs);
+    if (st.type === 'work') {
+      set = st.sets > 1 ? `SERIE ${st.set} DE ${st.sets}` : '';
+      if (st.mode === 'reps') { big = `${pad(st.sets)} x ${pad(st.reps)}`; label = 'SERIES x REPS'; sub = '⏱ ' + mmss(el); }
+      else label = 'TIEMPO RESTANTE';
+    } else if (st.type === 'rest') { label = 'DESCANSO'; set = 'PRÓXIMO: ' + DB.BY_ID[it.id].n.toUpperCase(); }
+    else { label = P.guide === 'prep' && P.guideView === 'B' ? 'EN PAUSA · REVISANDO TÉCNICA' : 'PREPÁRATE'; set = metaItem(it).toUpperCase(); }
+    $('#fhBig').textContent = big; $('#fhLabel').textContent = label; $('#fhSet').textContent = set; $('#fhSub').textContent = sub;
   }
 
   function renderTime() {
@@ -720,12 +809,15 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#plTime').textContent = txt;
     $('#plRing').style.strokeDashoffset = (RING_C * frac).toFixed(1);
     $('#plTotal').textContent = hhmmss(P.sessionMs);
+    if ($('#player').classList.contains('focus')) renderFocus(st, el, txt);
   }
 
   function tick() {
     const now = performance.now(); const dt = Math.min(now - P.last, 2000); P.last = now;
-    if (!P.active || P.paused) return;
+    if (!P.active) return;
     if (liveAvatar) liveAvatar.ensure(); // red de seguridad: reanima si el bucle se detuvo
+    if (P.paused) return;
+    if (P.guide === 'prep' && P.guideView === 'B') return; // revisando el punto máximo: la cuenta regresiva espera
     P.sessionMs += dt; P.phaseMs += dt;
     const st = curStep();
     if (st.type === 'work') P.workMs += dt;
@@ -734,7 +826,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       const sec = Math.ceil(rem);
       if (sec <= 3 && sec >= 1 && !P.said[sec]) {
         P.said[sec] = true; beep(sec === 1 ? 990 : 880, 0.1);
-        if (st.secs > 5) speak(['', 'uno', 'dos', 'tres'][sec], false);
+        if (st.secs > 5) speak(['', 'uno', 'dos', 'tres'][sec], st.type === 'prep'); // en la preparación corta la lectura de la postura
         vibrate(40);
       }
       if (st.type === 'work' && !P.said.half && st.secs >= 20 && rem <= st.secs / 2) {
@@ -756,6 +848,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     P.kcalW += e.met * (+S.profile.peso || 70) * secs / 3600;
   }
   function goStep(i) {
+    if (P.guide === 'inspect') quietPause(P.inspectWasPaused);
     if (i >= P.steps.length) { logWork(); finishWorkout(true); return; }
     P.idx = Math.max(0, i); enterStep();
   }
@@ -767,7 +860,11 @@ Usa "reps" o "segundos" (el otro en null).`;
     liveAvatar && liveAvatar.pause(v);
     if (v) { speak('Pausa'); releaseScreen(); } else { speak('Continuamos', true); lockScreen(); }
   }
-  function showExitDialog() { if (!P.paused) setPaused(true); $('#plExit').hidden = false; }
+  function showExitDialog() {
+    if (P.guide === 'inspect') { P.inspectWasPaused = false; closeInspect(); }
+    if (!P.paused) setPaused(true);
+    $('#plExit').hidden = false;
+  }
 
   function bindPlayer() {
     $('#btnIniciarCoach').addEventListener('click', startWorkout);
@@ -775,7 +872,11 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#plSkip').addEventListener('click', () => { speak('¡Vamos!'); advance(); });
     $('#plMinus').addEventListener('click', () => { const st = curStep(); st.secs = Math.max(Math.ceil(P.phaseMs / 1000) + 1, st.secs - 15); P.said = {}; renderTime(); });
     $('#plPlus').addEventListener('click', () => { const st = curStep(); st.secs += 15; P.said = {}; renderTime(); });
-    $('#plPause').addEventListener('click', () => setPaused(!P.paused));
+    $('#plPause').addEventListener('click', () => { if (P.guide === 'inspect') { closeInspect(); return; } setPaused(!P.paused); });
+    $('#plFocus').addEventListener('click', () => applyFocus(!S.settings.enfoque));
+    $('#plPosture').addEventListener('click', openInspect);
+    $('#plGo').addEventListener('click', () => { if (P.guide === 'inspect') closeInspect(); else { speak('¡Vamos!'); advance(); } });
+    $('#plAB').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || !P.guide) return; setAB(b.dataset.ab); vibrate(15); });
     $('#plNextBtn').addEventListener('click', () => advance());
     $('#plPrev').addEventListener('click', () => {
       if (curStep().type === 'work' && P.phaseMs > 3000) { enterStep(); return; }
@@ -1071,7 +1172,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     { tab: 'gimnasio', sel: '#equipoLista .eq-grid', t: '3 · Tu gimnasio', x: 'Marca el equipo que tienes. ¿De viaje? Usa “Modo Viaje” para recalcular solo por hoy.' },
     { tab: 'rutina', sel: '#tab-rutina .hero-card', t: '4 · Tu rutina inteligente', x: 'Elige 15, 30, 45 o 60 minutos. Calentamiento → bloque principal → estiramiento. Con API Key de Gemini puedes generarla con IA.' },
     { tab: 'rutina', sel: '#rutinaLista .ex-card', t: '5 · Cambia y aprende', x: 'Toca “Ver técnica” para ver al entrenador animado o “Cambiar ejercicio” para una alternativa equivalente.' },
-    { tab: 'entrenador', sel: '#coachIdle .card', t: '6 · Entrenador en vivo', x: 'Avatar arriba, cronómetro abajo. Voz en español, pitidos, vibración y pantalla siempre encendida. En los descansos califica: Fácil / Justo / Muy pesado. Elige entre 12 entrenadores y cambia su color.' },
+    { tab: 'entrenador', sel: '#coachIdle .card', t: '6 · Entrenador en vivo', x: 'Avatar arriba, cronómetro abajo. Voz en español, pitidos, vibración y pantalla siempre encendida. En los descansos califica: Fácil / Justo / Muy pesado. Elige entre 14 entrenadores (¡incluye anatómicos con músculos en rojo!). Toca 🎯 para la Vista Enfoque y 🧍 para ver la postura.' },
     { tab: 'progreso', sel: '#kpis', t: '7 · Progreso y respaldo', x: 'Racha, calorías, medidas y gráficas. Haz respaldos desde Perfil y compártelos por WhatsApp o Drive. ¡A entrenar!' }
   ];
   let tourI = 0, tourPrevTab = null;
@@ -1122,7 +1223,10 @@ Usa "reps" o "segundos" (el otro en null).`;
     ['¿Por qué la pantalla no se apaga?', 'Durante el entrenamiento activamos “Screen Wake Lock” para que veas el cronómetro. Se libera al pausar o terminar.'],
     ['¿Cómo no pierdo mi progreso?', 'Descarga o comparte tu respaldo (Perfil → Datos y respaldo). Además guardamos copias espejo automáticas de los últimos 7 días dentro del teléfono.'],
     ['El botón “Atrás” de mi celular…', 'Cierra primero ventanas y el reproductor, luego regresa a Mi Rutina y solo después sale de la app. En el entrenamiento te pregunta antes de salir.'],
-    ['¿Puedo cambiar de entrenador?', 'Sí: en Perfil → Mi entrenador, o con el botón “🎭 Entrenador” antes de empezar. Hay 12 personajes (humanos, mascotas y objetos) y 6 colores de acento. Tu elección se guarda y va en el respaldo.'],
+    ['¿Puedo cambiar de entrenador?', 'Sí: en Perfil → Mi entrenador, o con el botón “🎭 Entrenador” antes de empezar. Hay 14 personajes (humanos, mascotas, objetos y anatómicos) y 6 colores de acento. Tu elección se guarda y va en el respaldo.'],
+    ['¿Qué es la preparación de 10 segundos?', 'Antes de cada ejercicio ves la pose inicial con puntos luminosos en las articulaciones a cuidar y flechas de movimiento. Alterna A (pose inicial) y B (punto máximo): en B la cuenta se pausa. Toca “Empezar ya” para saltarla o “🧍 Postura inicial” para consultarla en cualquier momento.'],
+    ['¿Qué significan los músculos rojos?', 'Con los entrenadores anatómicos, el rojo intenso con pulso marca los músculos principales del ejercicio y el rojo suave los secundarios.'],
+    ['¿Qué es la Vista Enfoque?', 'Toca 🎯 en el entrenamiento: fondo de estudio oscuro, series × repeticiones (o el tiempo) en grande y el avatar a gran tamaño. Tu elección se recuerda.'],
     ['¿Cómo se calculan las calorías?', 'Con valores MET de cada ejercicio × tu peso × tiempo real de trabajo, más el gasto en los descansos. Es una estimación.']
   ];
   function renderFAQ() { $('#faq').innerHTML = FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join(''); }
@@ -1149,6 +1253,8 @@ Usa "reps" o "segundos" (el otro en null).`;
   // ---------- Service Worker ----------
   function registerSW() {
     if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+    // Solo recarga al ACTUALIZAR (ya había un Service Worker); en la primera instalación no hace falta
+    const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register('sw.js').then(reg => {
       const notify = w => {
         const b = $('#banner');
@@ -1163,7 +1269,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       });
     }).catch(() => { /* sin SW */ });
     let reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || P.active) return; reloaded = true; location.reload(); });
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController || reloaded || P.active) return; reloaded = true; location.reload(); });
   }
 
   // ---------- Arranque ----------

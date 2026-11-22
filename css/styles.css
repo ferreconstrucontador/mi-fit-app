@@ -459,3 +459,111 @@ body.training .toast { bottom: 24px; }
 .sw.on::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .coach-preview .btn { max-width: 320px; margin-left: auto; margin-right: auto; }
 .hero-card #btnEntrenadorRutina { min-height: 46px; font-size: .92rem; }
+
+/* ===== Guía visual de postura (preparación de 10 s) ===== */
+.pill-mini { margin-top: 6px; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface-2); font-weight: 800; font-size: .85rem; }
+.pl-guide { display: none; }
+.player[data-guide="on"] .pl-guide { display: block; }
+.player[data-guide="on"] .pl-tip { display: none; }
+.ab-toggle { display: flex; gap: 6px; margin: 2px 0 6px; }
+.ab-toggle button { flex: 1; min-height: 44px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface-2); font-weight: 800; font-size: .82rem; }
+.ab-toggle button.on { background: #22e6ff; color: #032229; border-color: #22e6ff; }
+.ab-chip { margin: 0 0 6px; text-align: center; font-size: .8rem; font-weight: 800; color: var(--prep); }
+.tech { display: flex; flex-direction: column; gap: 5px; max-height: 27vh; overflow-y: auto; }
+.tech-row { display: flex; gap: 8px; align-items: flex-start; background: var(--surface-2); border-radius: 12px; padding: 6px 10px; text-align: left; }
+.tech-row b { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tech-row p { margin: 0; font-size: .86rem; line-height: 1.25; color: var(--text); }
+.tech-n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: .8rem; margin-top: 2px; }
+.tech-row.err .tech-n { background: var(--danger); }
+.btn-go { min-height: 68px; font-size: 1.3rem; background: var(--prep); color: #221700; border-radius: 18px; box-shadow: 0 8px 20px color-mix(in srgb, var(--prep) 40%, transparent); }
+#plGoWrap .btn { margin-top: 0; }
+.avatar-svg.floor { overflow: visible; }
+
+/* ===== Vista Enfoque / Estudio ===== */
+.pl-fhead { display: none; text-align: center; padding-top: 2px; }
+.fh-big { font-size: clamp(3.2rem, 18vw, 6.2rem); font-weight: 900; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; color: #fff; text-shadow: 0 4px 24px rgba(0,0,0,.45); }
+.fh-label { font-size: .78rem; font-weight: 800; letter-spacing: .22em; color: #ffb27a; margin-top: 4px; }
+.fh-sub { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; font-size: .82rem; font-weight: 700; letter-spacing: .04em; color: #aab3c2; margin-top: 4px; min-height: 1.2em; }
+.player.focus {
+  --accent: #ff8a4c; --bg: #0b0d12; --text: #f4f6fa; --muted: #a8b0be;
+  --surface: rgba(255,255,255,.08); --surface-2: rgba(255,255,255,.1); --border: rgba(255,255,255,.16);
+  --av-ground: rgba(255,178,122,.5);
+  color: var(--text);
+  background: radial-gradient(120% 75% at 50% 22%, #343b4a 0%, #171b24 52%, #0a0b10 100%);
+}
+.player.focus[data-phase="rest"] { --accent: #4db8ff; }
+.player.focus[data-phase="prep"] { --accent: #ffc233; }
+.player.focus .pl-fhead { display: block; }
+.player.focus .pl-info h2 { font-size: .95rem; letter-spacing: .16em; text-transform: uppercase; color: #cfd5df; font-weight: 800; margin-top: 0; }
+.player.focus .pl-set, .player.focus .pl-tip { display: none; }
+.player.focus .pl-block { color: var(--accent); }
+.player.focus .ring-wrap { display: none; }
+.player.focus .pl-side { flex: 1; }
+.player.focus .pl-panel { background: transparent; border-top: 0; box-shadow: none; padding-top: 2px; }
+.player.focus .pl-clock, .player.focus .icon-btn, .player.focus .ctrl { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.14); color: #f4f6fa; }
+.player.focus .icon-btn.on { background: #ff8a4c; border-color: #ff8a4c; }
+.player.focus .ctrl-main { background: var(--accent); color: #fff; border: 0; }
+.player.focus .pl-progress { background: rgba(255,255,255,.12); }
+.player.focus .tech { max-height: 20vh; }
+.player.focus .tech-row { background: rgba(255,255,255,.08); }
+.player.focus .tech-row p { color: #f1f3f7; }
+.player.focus .next-card { background: rgba(255,255,255,.08); }
+.player.focus .pl-avatar { margin-top: 2px; }
+#plFocus.on { background: #ff8a4c; border-color: #ff8a4c; color: #fff; }
+
+/* ===== Galería con 4 pestañas ===== */
+.gtabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; line-height: 1.15; font-size: .72rem; min-height: 52px; }
+.gtabs button::first-line { font-size: 1.15rem; }
+@media (max-height: 700px) { .tech { max-height: 22vh; } .tech-row p { font-size: .8rem; } .fh-big { font-size: clamp(2.6rem, 15vw, 4.6rem); } .btn-go { min-height: 56px; } }
+
+/* ===== Ajuste de espacio durante la guía de postura ===== */
+.pl-stage { overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+.pl-stage::-webkit-scrollbar { display: none; }
+.pl-avatar { min-height: 30vh; }
+.player[data-guide="on"] .ring-wrap { width: min(25vw, 14vh, 104px); }
+.player[data-guide="on"] .ring-num { font-size: 1.5rem; }
+.player[data-guide="on"] .ring-label { font-size: .58rem; letter-spacing: .03em; }
+.player[data-guide="on"] .pl-panel { padding-top: 8px; padding-bottom: 6px; }
+.player[data-guide="on"] .pl-controls { margin-top: 6px; gap: 16px; }
+.player[data-guide="on"] .ctrl { width: 46px; height: 46px; font-size: 1.1rem; }
+.player[data-guide="on"] .ctrl-main { width: 56px; height: 56px; font-size: 1.4rem; }
+.player[data-guide="on"] .btn-go { min-height: 58px; font-size: 1.2rem; }
+.player[data-guide="on"] .pl-actions { margin-top: 6px; }
+.player[data-guide="on"] .next-card { padding: 7px 10px; }
+.player[data-guide="on"] .pl-info h2 { font-size: clamp(1.05rem, 4.6vw, 1.35rem); }
+@media (max-height: 700px) { .pl-avatar { min-height: 24vh; } .player[data-guide="on"] .ring-wrap { width: 84px; } .player[data-guide="on"] .ring-num { font-size: 1.25rem; } }
+.tech { max-height: none; }
+.player[data-guide="on"] .pl-avatar { min-height: 27vh; }
+.player[data-guide="on"] .tech-row { padding: 5px 9px; }
+.player[data-guide="on"] .tech-row p { font-size: .82rem; }
+@media (max-height: 700px) {
+  .player[data-guide="on"] .pl-set, .player[data-guide="on"] .next-card { display: none; }
+  .player[data-guide="on"] .pl-info h2 { font-size: 1rem; }
+  .ab-toggle button { min-height: 38px; font-size: .78rem; }
+  .player[data-guide="on"] .tech-row { padding: 4px 8px; }
+  .player[data-guide="on"] .tech-row p { font-size: .76rem; line-height: 1.2; }
+  .tech-row b { font-size: .6rem; }
+  .player[data-guide="on"] .pl-avatar { min-height: 22vh; }
+}
+.player[data-guide="on"] .pl-avatar { min-height: 23vh; }
+@media (max-height: 700px) {
+  /* Pantallas cortas: cuenta regresiva y "Empezar ya" en la misma fila */
+  .player[data-guide="on"] .pl-panel { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; }
+  .player[data-guide="on"] .pl-timer-row { display: contents; }
+  .player[data-guide="on"] .pl-side { display: none; }
+  .player[data-guide="on"] .pl-actions { margin: 0; }
+  .player[data-guide="on"] .pl-controls { grid-column: 1 / -1; margin-top: 0; }
+  .player[data-guide="on"] .pl-avatar { min-height: 24vh; }
+}
+
+/* ===== Vista Enfoque: menos tarjetas, más avatar ===== */
+.player.focus .next-card { display: none; }
+.player.focus .rpe-btns { grid-template-columns: repeat(3, 1fr); }
+.player.focus .rpe-btns button { min-height: 44px; font-size: .78rem; padding: 0 4px; background: rgba(255,255,255,.09); color: #f4f6fa; border-color: rgba(255,255,255,.16); }
+.player.focus .rpe-btns button.on { background: var(--accent); border-color: var(--accent); }
+.player.focus .rpe .eyebrow { text-align: center; }
+.player.focus[data-guide="on"] .fh-big { font-size: clamp(2.4rem, 12vw, 3.6rem); }
+.player.focus[data-guide="on"] #fhSub { display: none; }
+.player.focus .btn-ghost { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.16); color: #f4f6fa; }
+body.training .toast { top: calc(64px + env(safe-area-inset-top, 0px)); bottom: auto; transform: translate(-50%, -16px); }
+body.training .toast.show { transform: translate(-50%, 0); }

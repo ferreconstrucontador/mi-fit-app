@@ -236,8 +236,119 @@
     { id: 'est_pantorrilla', n: 'Estiramiento de pantorrilla en pared', g: 'Estiramiento', p: 'estiramiento', eq: ['pared'], lv: 1, ci: [], t: 's', b: 30, a: 'lunge', met: 2, m: 'Gemelos', tip: 'Talón trasero al piso, pierna recta.', f: 'e' }
   ];
 
+  const PREP_SECS = 10; // preparación exacta antes de cada ejercicio
   const BY_ID = {};
   X.forEach(e => { BY_ID[e.id] = e; });
+
+
+  // =========================================================================
+  //  MÚSCULOS ACTIVADOS (para iluminar al avatar anatómico)
+  //  Formato 'principales|secundarios' con códigos de 2 letras.
+  // =========================================================================
+  const MUSCULOS = {
+    pe: { id: 'pecho', n: 'Pecho' }, es: { id: 'espalda', n: 'Espalda / dorsales' }, ho: { id: 'hombros', n: 'Hombros' },
+    bi: { id: 'biceps', n: 'Bíceps' }, tr: { id: 'triceps', n: 'Tríceps' }, ab: { id: 'abdomen', n: 'Abdomen' },
+    gl: { id: 'gluteos', n: 'Glúteos' }, cu: { id: 'cuadriceps', n: 'Cuádriceps' }, is: { id: 'isquios', n: 'Isquiotibiales' },
+    pa: { id: 'pantorrillas', n: 'Pantorrillas' }
+  };
+  const MUS_PATRON = {
+    calentamiento: 'ho|ab', cardio: 'cu,gl|pa,ab,ho', movilidad: 'ab|gl', sentadilla: 'cu,gl|is,ab,pa', bisagra: 'gl,is|es,ab',
+    gluteo: 'gl|is,ab', zancada: 'cu,gl|is,pa', empuje_h: 'pe|tr,ho,ab', empuje_v: 'ho|tr,pe,ab', tiron_h: 'es|bi,ho',
+    tiron_v: 'es|bi,ho,ab', brazos: 'bi|ho', core: 'ab|ho', pantorrilla: 'pa|', estiramiento: 'is|'
+  };
+  const MUS_ID = {
+    marcha: 'cu,gl|ab,pa', jack_bajo: 'ho,cu|pa,gl', circulos_brazos: 'ho|es,pe', rot_torso: 'ab|es', circulos_cadera: 'gl,ab|cu',
+    balanceo_piernas: 'is,gl|cu,ab', buenos_dias_cal: 'is,gl|es', aperturas_liga_cal: 'es,ho|tr', cuerda_suave: 'pa|cu,ho',
+    boxeo_sombra: 'ho,ab|pe,tr,cu', jumping_jacks: 'cu,ho|pa,gl', rodillas_altas: 'cu,ab|gl,pa', talones_gluteo: 'is|gl,pa',
+    marcha_rapida: 'cu,gl|pa,ab', escaladores: 'ab,ho|cu,pe,tr', burpee_sin_salto: 'cu,pe|ho,tr,ab,gl', burpee: 'cu,gl,pe|ho,tr,ab,pa',
+    skaters: 'gl,cu|is,pa,ab', saltar_cuerda: 'pa|cu,ho', slam_balon: 'ab,ho|es,pe,tr,gl', gusano: 'is,ho|ab,pe,pa',
+    gato_vaca: 'es,ab|ho', dislocaciones_liga: 'ho,pe|es', sentadilla_profunda: 'cu,gl|is,pa', zancada_flexor: 'cu,gl|ab', gusano_mov: 'is,ho|ab,pa',
+    sentadilla_sumo: 'cu,gl|is,ab', sentadilla_pared: 'cu|gl,pa', sentadilla_goblet: 'cu,gl|ab,ho', sentadilla_goblet_kb: 'cu,gl|ab,ho',
+    sentadilla_miniband: 'gl,cu|is,ab', sentadilla_barra: 'cu,gl|es,ab,is', thruster: 'cu,gl,ho|tr,ab', sentadilla_salto: 'cu,gl|pa,is,ab',
+    swing_kb: 'gl,is|es,ho,ab', peso_muerto_barra: 'gl,is,es|ab,bi', peso_muerto_1p: 'is,gl|ab,pa',
+    hip_thrust_mancuerna: 'gl|is,cu', caminata_lateral: 'gl|cu,ab', abduccion_pie: 'gl|cu,ab', abduccion_mb: 'gl|cu,ab',
+    lagartija_diamante: 'tr,pe|ho,ab', lagartija_declinada: 'pe,ho|tr,ab', lagartija_pared: 'pe|tr,ho', zancada_lateral: 'cu,gl|is',
+    press_militar_barra: 'ho,tr|pe,ab', elev_laterales: 'ho|es', elev_laterales_liga: 'ho|es', elev_frontales: 'ho|pe,bi',
+    ytw: 'es,ho|tr', superman: 'es,gl|is,ho', face_pull_liga: 'ho,es|bi', aperturas_liga: 'es,ho|tr', pajaro_mancuernas: 'ho,es|bi',
+    jalon_toalla: 'es|bi,ho', pullover_mancuerna: 'es,pe|tr,ho',
+    fondos_silla: 'tr|pe,ho', ext_triceps_mancuerna: 'tr|ho', patada_triceps: 'tr|ho,es', patada_triceps_liga: 'tr|ho,es',
+    plancha: 'ab|ho,gl,pe', plancha_lateral: 'ab|ho,gl', dead_bug: 'ab|cu', bird_dog: 'ab,gl|es,ho', crunch: 'ab|', bicicleta: 'ab|cu',
+    elev_piernas: 'ab|cu', hollow: 'ab|cu', giro_ruso: 'ab|ho', giro_ruso_balon: 'ab|ho,pe', rueda_abdominal: 'ab|es,ho,pe',
+    pallof_liga: 'ab|ho,pe', lenador_liga: 'ab|ho,es,gl', toque_hombro: 'ab,ho|pe,tr', rodillas_trx: 'ab,ho|pe,cu',
+    est_cuadriceps: 'cu|', est_isquios: 'is|es', est_hombro: 'ho|es', est_triceps: 'tr|ho', est_lateral: 'ab|es', est_pecho: 'pe|ho',
+    postura_nino: 'es|gl', cobra: 'ab|pe', abrazo_rodillas: 'gl|es,is', respiracion: 'ab|', est_pantorrilla: 'pa|is'
+  };
+  function parseMus(str) {
+    const [a, b] = String(str || '|').split('|');
+    const map = c => c.split(',').filter(Boolean).map(k => MUSCULOS[k].id);
+    return { p: map(a || ''), s: map(b || '') };
+  }
+  const musNombres = ids => ids.map(i => Object.values(MUSCULOS).find(m => m.id === i).n);
+
+  // =========================================================================
+  //  GUÍA DE POSTURA: posición inicial · ejecución · error común · marcadores
+  //  Marcadores: [tipo, articulación, etiqueta]. K rodillas, A tobillos/pies, W manos,
+  //  E codos, S hombros, H cadera. 'spine' = línea de la columna; 'span' = ancho entre lados.
+  // =========================================================================
+  const GUIA_PATRON = {
+    calentamiento: { ini: 'De pie, relajado, hombros sueltos y respiración tranquila.', err: 'Moverte demasiado rápido y sin control.', marks: [['spine', '', 'Postura alta'], ['pt', 'S', 'Hombros relajados']] },
+    cardio: { ini: 'Postura alta, abdomen activo y pies listos para aterrizar suave.', err: 'Aterrizar con rodillas rígidas o encorvarte.', marks: [['spine', '', 'Torso erguido'], ['pt', 'K', 'Rodillas suaves'], ['pt', 'A', 'Aterrizaje suave']] },
+    movilidad: { ini: 'Posición cómoda, espalda larga y respiración tranquila.', err: 'Forzar el rango hasta sentir dolor.', marks: [['spine', '', 'Espalda larga'], ['pt', 'S', 'Hombros']] },
+    sentadilla: { ini: 'Pies al ancho de hombros, pecho arriba y abdomen firme.', err: 'Rodillas hacia adentro o talones que se despegan del piso.', marks: [['pt', 'K', 'Rodillas alineadas'], ['spine', '', 'Espalda neutra'], ['span', 'A', 'Ancho de pies']] },
+    bisagra: { ini: 'Pies al ancho de caderas, rodillas suaves y espalda neutra.', err: 'Redondear la espalda baja: es bisagra de cadera, no sentadilla.', marks: [['spine', '', 'Espalda neutra'], ['pt', 'H', 'Cadera atrás'], ['pt', 'K', 'Rodillas suaves']] },
+    gluteo: { ini: 'Cuerpo estable, abdomen firme y cadera alineada.', err: 'Arquear la espalda baja en lugar de usar el glúteo.', marks: [['pt', 'H', 'Cadera'], ['spine', '', 'Espalda neutra'], ['pt', 'K', 'Rodillas']] },
+    zancada: { ini: 'De pie, torso erguido y pies a la anchura de caderas.', err: 'Rodilla delantera que pasa de la punta o torso que cae al frente.', marks: [['pt', 'K', 'Rodilla sobre tobillo'], ['spine', '', 'Torso erguido'], ['pt', 'A', 'Pies firmes']] },
+    empuje_h: { ini: 'Manos bajo los hombros y cuerpo recto de cabeza a talones.', err: 'Hundir la cadera o abrir los codos a 90°.', marks: [['spine', '', 'Cuerpo en línea'], ['pt', 'W', 'Manos bajo hombros'], ['pt', 'E', 'Codos a 45°']] },
+    empuje_v: { ini: 'De pie firme, costillas abajo y muñecas rectas sobre los codos.', err: 'Arquear la espalda baja al empujar.', marks: [['spine', '', 'Costillas abajo'], ['pt', 'W', 'Muñecas rectas'], ['pt', 'E', 'Codos bajo muñecas']] },
+    tiron_h: { ini: 'Torso firme, espalda neutra y hombros lejos de las orejas.', err: 'Jalar solo con los brazos y encoger los hombros.', marks: [['spine', '', 'Espalda plana'], ['pt', 'E', 'Codos pegados'], ['pt', 'W', 'Agarre firme']] },
+    tiron_v: { ini: 'Agarre firme y hombros activos, lejos de las orejas.', err: 'Balancearte o jalar solo con los brazos.', marks: [['pt', 'S', 'Hombros activos'], ['pt', 'W', 'Agarre'], ['spine', '', 'Cuerpo firme']] },
+    brazos: { ini: 'Codos pegados al cuerpo, muñecas neutras y torso quieto.', err: 'Balancear el cuerpo para mover el peso.', marks: [['pt', 'E', 'Codos fijos'], ['pt', 'W', 'Muñecas neutras'], ['spine', '', 'Torso quieto']] },
+    core: { ini: 'Abdomen firme, espalda baja estable y respiración controlada.', err: 'Arquear la espalda baja o contener la respiración.', marks: [['spine', '', 'Cuerpo en línea'], ['pt', 'H', 'Cadera'], ['pt', 'S', 'Hombros']] },
+    pantorrilla: { ini: 'De pie, pies paralelos y postura alta.', err: 'Rebotar en lugar de subir y bajar controlado.', marks: [['pt', 'A', 'Talones'], ['spine', '', 'Postura alta'], ['span', 'A', 'Pies paralelos']] },
+    estiramiento: { ini: 'Posición estable, músculo relajado y respiración profunda.', err: 'Rebotar o estirar hasta sentir dolor.', marks: [['spine', '', 'Espalda larga'], ['pt', 'S', 'Hombros']] }
+  };
+  const _boca = { ini: 'Boca arriba, rodillas dobladas y pies a la anchura de caderas.', err: 'Arquear la espalda baja en vez de apretar el glúteo.', marks: [['pt', 'H', 'Cadera arriba'], ['spine', '', 'Línea hombro-rodilla'], ['pt', 'K', 'Rodillas alineadas']] };
+  const _lagBase = { ini: 'Manos bajo los hombros y cuerpo recto de cabeza a talones.', err: 'Hundir la cadera o abrir los codos.' };
+  const _colgar = { ini: 'Cuelga con brazos extendidos y hombros activos.', err: 'Balancearte o encoger los hombros hacia las orejas.' };
+  const _espaldaPiso = { ini: 'Boca arriba, espalda baja pegada al piso y abdomen firme.', err: 'Arquear la espalda baja al mover las piernas.' };
+  const GUIA_ID = {
+    puente_gluteo: _boca, puente_1p: _boca, puente_miniband: _boca, hip_thrust_mancuerna: _boca,
+    plancha: { ini: 'Antebrazos bajo los hombros, cuerpo en línea recta.', err: 'Hundir la cadera o levantarla demasiado.' },
+    plancha_lateral: { ini: 'De lado, codo bajo el hombro y cadera elevada.', err: 'Dejar caer la cadera o girar el pecho.' },
+    dead_bug: { ini: 'Boca arriba, brazos al techo y rodillas a 90°.', err: 'Despegar la espalda baja del piso.' },
+    bird_dog: { ini: 'En cuatro apoyos, manos bajo hombros y rodillas bajo la cadera.', err: 'Girar la cadera al extender la pierna.' },
+    crunch: { ini: 'Boca arriba, rodillas dobladas y manos suaves tras la cabeza.', err: 'Jalar el cuello con las manos.' },
+    bicicleta: _espaldaPiso, elev_piernas: _espaldaPiso, hollow: _espaldaPiso,
+    giro_ruso: { ini: 'Sentado, torso inclinado atrás y pecho abierto.', err: 'Girar solo los brazos y no el torso.' },
+    giro_ruso_balon: { ini: 'Sentado, torso inclinado atrás y balón al frente.', err: 'Girar solo los brazos y no el torso.' },
+    superman: { ini: 'Boca abajo, brazos estirados y mirada al piso.', err: 'Levantar la cabeza y arquear el cuello.' },
+    ytw: { ini: 'Boca abajo, frente cerca del piso y brazos estirados.', err: 'Levantar la cabeza o encoger los hombros.' },
+    lagartija_pared: { ini: 'De pie frente a la pared, manos a la altura del pecho.', err: 'Separar los talones o hundir la cadera.' },
+    lagartija_inclinada: { ini: 'Manos en el borde firme y cuerpo en línea recta.', err: 'Hundir la cadera o abrir mucho los codos.' },
+    lagartija_rodillas: { ini: 'Rodillas apoyadas, manos bajo los hombros y cuerpo recto.', err: 'Doblar la cadera en vez de bajar el pecho.' },
+    lagartija: _lagBase, lagartija_diamante: _lagBase, lagartija_declinada: _lagBase, lagartija_trx: _lagBase,
+    colgarse_barra: _colgar, dominada_negativa: _colgar, dominada_asistida: _colgar, dominada: _colgar,
+    fondos_silla: { ini: 'Manos en el borde de la silla, cadera cerca y codos atrás.', err: 'Dejar caer los hombros o alejar la cadera de la silla.' },
+    swing_kb: { ini: 'Pies más anchos que la cadera, kettlebell delante y espalda plana.', err: 'Hacer sentadilla y levantar con los brazos.' },
+    burpee: { ini: 'De pie, pies al ancho de hombros y listo para bajar.', err: 'Hundir la cadera al llegar a la plancha.' },
+    burpee_sin_salto: { ini: 'De pie, pies al ancho de hombros y listo para bajar.', err: 'Hundir la cadera al llegar a la plancha.' },
+    saltar_cuerda: { ini: 'Codos pegados, muñecas sueltas y rodillas ligeras.', err: 'Saltar muy alto o abrir los codos.' },
+    escaladores: { ini: 'En plancha alta, manos bajo hombros y cuerpo recto.', err: 'Subir la cadera al llevar las rodillas.' },
+    gato_vaca: { ini: 'En cuatro apoyos, manos bajo hombros y rodillas bajo la cadera.', err: 'Mover solo el cuello y no toda la columna.' },
+    sentadilla_pared: { ini: 'Espalda pegada a la pared y pies adelantados al ancho de hombros.', err: 'Rodillas más allá de la punta de los pies.' },
+    sentadilla_silla: { ini: 'De pie frente a la silla, pies al ancho de hombros.', err: 'Dejarte caer sobre la silla.' },
+    elev_laterales: { ini: 'De pie, mancuernas a los lados y codos ligeramente flexionados.', err: 'Subir con impulso o encoger los hombros.' },
+    elev_laterales_liga: { ini: 'De pie, liga bajo los pies y codos ligeramente flexionados.', err: 'Subir con impulso o encoger los hombros.' },
+    respiracion: { ini: 'Acostado o sentado, una mano sobre el abdomen.', err: 'Elevar los hombros al inhalar.' },
+    postura_nino: { ini: 'De rodillas, glúteos hacia los talones y brazos al frente.', err: 'Levantar la cadera de los talones por tensión.' },
+    cobra: { ini: 'Boca abajo, manos bajo los hombros y cadera en el piso.', err: 'Empujar con los brazos y arquear de más la zona lumbar.' },
+    abrazo_rodillas: { ini: 'Boca arriba, lleva las rodillas hacia el pecho.', err: 'Levantar la cabeza y tensar el cuello.' }
+  };
+  function guiaDe(e) {
+    const base = GUIA_PATRON[e.p] || GUIA_PATRON.core, o = GUIA_ID[e.id] || {};
+    return { ini: o.ini || base.ini, eje: e.tip, err: o.err || base.err, marks: o.marks || base.marks };
+  }
+  X.forEach(e => { e.mus = parseMus(MUS_ID[e.id] || MUS_PATRON[e.p]); e.guia = guiaDe(e); });
 
   // ---------- Utilidades ----------
   function rng(seed) { // mulberry32
@@ -288,7 +399,8 @@
   // Estima segundos de un bloque
   function duracionItem(it) {
     const work = it.mode === 'time' ? it.secs : it.reps * 3.5;
-    return it.sets * work + Math.max(0, it.sets - 1) * it.rest + it.rest;
+    // + 10 s de preparación (guía de postura) antes de cada ejercicio; el descanso final solo en bloque principal
+    return it.sets * work + Math.max(0, it.sets - 1) * it.rest + (it.block === 'pri' ? it.rest : 0) + PREP_SECS;
   }
 
   // Aplica parámetros de objetivo, nivel y progresión a un ejercicio
@@ -408,7 +520,7 @@
   }
 
   global.MiFitDB = {
-    EQUIPO, EQUIPO_NOMBRE, LESIONES, OBJETIVOS, EJERCICIOS: X, BY_ID, DIAS, PARAMS,
+    EQUIPO, EQUIPO_NOMBRE, LESIONES, MUSCULOS, PREP_SECS, parseMus, musNombres, guiaDe, OBJETIVOS, EJERCICIOS: X, BY_ID, DIAS, PARAMS,
     generarRutina, alternativa, prescribir, permitido, disponibles, estimarMinutos, duracionItem, hash, LEVEL
   };
 })(window);

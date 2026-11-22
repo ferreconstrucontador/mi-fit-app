@@ -89,7 +89,7 @@
 
       <div class="card">
         <h3>🎭 Mi entrenador</h3>
-        <p class="hint">12 personajes articulados: humanos, mascotas y objetos. Todos hacen los mismos ejercicios y sostienen tu equipo.</p>
+        <p class="hint">14 personajes articulados: humanos, mascotas, objetos y anatómicos. Todos hacen los mismos ejercicios y sostienen tu equipo.</p>
         <div class="gallery" id="galeriaPerfil"></div>
       </div>
 
@@ -202,6 +202,7 @@
           <button class="icon-btn" id="plClose" aria-label="Salir del entrenamiento">✕</button>
           <div class="pl-progress"><div id="plProgressBar"></div></div>
           <div class="pl-clock" aria-label="Tiempo total"><span>⏱</span> <b id="plTotal">00:00</b></div>
+          <button class="icon-btn" id="plFocus" aria-label="Vista Enfoque" aria-pressed="false" title="Vista Enfoque / Estudio">🎯</button>
           <button class="icon-btn" id="plVoice" aria-label="Activar o silenciar voz">🔊</button>
         </div>
 
@@ -211,8 +212,28 @@
             <p class="pl-block" id="plBlock">Calentamiento</p>
             <h2 id="plName">Prepárate</h2>
             <p class="pl-set" id="plSet"></p>
+            <button class="pill-mini" id="plPosture" hidden>🧍 Postura inicial</button>
+          </div>
+          <!-- Vista Enfoque: series x reps (o tiempo) en grande -->
+          <div class="pl-fhead" id="plFHead">
+            <div class="fh-big" id="fhBig">03 x 12</div>
+            <div class="fh-label" id="fhLabel">SERIES x REPS</div>
+            <div class="fh-sub"><span id="fhSet"></span><span id="fhSub"></span></div>
           </div>
           <div class="avatar-box pl-avatar" id="avatarLive"></div>
+          <!-- Guía visual de postura (preparación de 10 s o consulta) -->
+          <div class="pl-guide" id="plGuide">
+            <div class="ab-toggle" id="plAB" role="group" aria-label="Alternar pose">
+              <button data-ab="A" class="on">A · Pose inicial</button>
+              <button data-ab="B">B · Punto máximo</button>
+            </div>
+            <p class="ab-chip" id="plHoldChip" hidden>⏸ Cuenta en pausa mientras revisas la técnica</p>
+            <div class="tech" id="plTech">
+              <div class="tech-row"><span class="tech-n">1</span><div><b>Posición inicial</b><p id="techIni"></p></div></div>
+              <div class="tech-row"><span class="tech-n">2</span><div><b>Ejecución</b><p id="techEje"></p></div></div>
+              <div class="tech-row err"><span class="tech-n">!</span><div><b>Error común a evitar</b><p id="techErr"></p></div></div>
+            </div>
+          </div>
           <div class="pl-tip">
             <p id="plMuscles"></p>
             <p id="plTip"></p>
@@ -234,7 +255,7 @@
             </div>
             <div class="pl-side">
               <div class="next-card" id="plNext" hidden>
-                <p class="eyebrow">Siguiente</p>
+                <p class="eyebrow" id="plNextEye">Siguiente</p>
                 <p class="next-name" id="plNextName"></p>
                 <p class="hint" id="plNextMeta"></p>
               </div>
@@ -250,6 +271,7 @@
           </div>
 
           <div class="pl-actions">
+            <div id="plGoWrap" hidden><button class="btn btn-go" id="plGo">⏭️ Empezar ya</button></div>
             <button class="btn btn-done" id="plDone" hidden>✅ Serie completada</button>
             <div class="rest-ctrl" id="plRestCtrl" hidden>
               <button class="btn btn-ghost" id="plMinus">−15s</button>
