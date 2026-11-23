@@ -669,3 +669,16 @@ body.training .toast.show { transform: translate(-50%, 0); }
 @keyframes catSwL { from { opacity: .2; transform: translateX(28px); } to { opacity: 1; transform: none; } }
 @keyframes catSwR { from { opacity: .2; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .cat-stage.sw-l .cat-av, .cat-stage.sw-r .cat-av { animation: none; } }
+
+/* ===== v1.5.6 · Diálogo propio (reemplaza confirm() / alert()) ===== */
+.dlg { position: fixed; inset: 0; z-index: 120; background: rgba(0, 0, 0, .55); display: grid; place-items: center; padding: 20px calc(20px + env(safe-area-inset-right, 0px)) calc(20px + var(--safe-b)) calc(20px + env(safe-area-inset-left, 0px)); animation: fade .15s; }
+.dlg-card { width: 100%; max-width: 380px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 20px; padding: 20px 18px 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .4); animation: dlgIn .18s ease-out; }
+.dlg-card h3 { margin: 0 0 8px; font-size: 1.1rem; }
+.dlg-card p { margin: 0 0 16px; font-size: .98rem; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+.dlg-actions { display: flex; gap: 8px; }
+.dlg-actions .btn { margin: 0; flex: 1; }
+.dlg.alerta #dlgCancel { display: none; }
+.btn-danger { background: var(--danger); color: #fff; }
+@keyframes dlgIn { from { transform: translateY(10px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (max-width: 340px) { .dlg-actions { flex-direction: column-reverse; } }
+@media (prefers-reduced-motion: reduce) { .dlg-card { animation: none; } }

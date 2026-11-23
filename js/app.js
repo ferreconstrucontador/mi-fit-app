@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.5.5'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.5.6'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -188,6 +188,7 @@
     else if (name === 'player') closePlayerUI();
     else if (name === 'catalog') closeCatalogUI();
     else if (name === 'catfs') catFsLeave();
+    else if (name === 'dialog') closeDialogUI();
   }
 
   // ---------- Modal ----------
@@ -208,6 +209,50 @@
     modalAvatars.forEach(a => a.destroy()); modalAvatars = [];
     const cb = modalOnClose; modalOnClose = null;
     if (cb) cb();
+  }
+
+  // ---------- Diálogo propio (reemplaza window.confirm() / window.alert()) ----------
+  // Devuelve una Promesa: true = confirmó (o aceptó un aviso), false = canceló. Se integra con la
+  // pila de capas del botón "Atrás": Atrás / Esc / tocar fuera cancelan sin salir de la app.
+  let dlgQueue = Promise.resolve(), dlgResolve = null, dlgResult = false, dlgPrevFocus = null;
+  function mostrarDialogo({ titulo = 'MiFitApp', mensaje = '', textoConfirmar = 'Aceptar', textoCancelar = 'Cancelar', esAlerta = false, peligro = false } = {}) {
+    const abrir = () => new Promise(resolve => {
+      dlgResolve = resolve; dlgResult = !!esAlerta;                 // un aviso siempre se da por aceptado
+      dlgPrevFocus = document.activeElement;
+      $('#dlgTitle').textContent = titulo || 'MiFitApp';
+      $('#dlgMsg').textContent = mensaje;
+      const ok = $('#dlgOk'), no = $('#dlgCancel');
+      ok.textContent = textoConfirmar; no.textContent = textoCancelar;
+      ok.className = 'btn ' + (peligro ? 'btn-danger' : 'btn-primary');
+      $('#dlg').classList.toggle('alerta', !!esAlerta);
+      $('#dlg').hidden = false;
+      pushOverlay('dialog');
+      setTimeout(() => { (esAlerta || !peligro ? ok : no).focus(); }, 30);   // en acciones peligrosas el foco queda en "Cancelar"
+    });
+    const p = dlgQueue.then(abrir);
+    dlgQueue = p.catch(() => { /* */ });
+    return p;
+  }
+  function closeDialogUI() {
+    $('#dlg').hidden = true;
+    const res = dlgResolve, val = dlgResult; dlgResolve = null;
+    try { if (dlgPrevFocus && dlgPrevFocus.focus) dlgPrevFocus.focus(); } catch (e) { /* */ }
+    dlgPrevFocus = null;
+    if (res) res(val);
+  }
+  function bindDialogo() {
+    const cerrar = ok => { if (!dlgResolve || overlays[overlays.length - 1] !== 'dialog') return; dlgResult = ok; popOverlayUI(); };
+    $('#dlgOk').addEventListener('click', () => cerrar(true));
+    $('#dlgCancel').addEventListener('click', () => cerrar(false));
+    $('#dlg').addEventListener('click', e => { if (e.target.id === 'dlg') cerrar($('#dlg').classList.contains('alerta')); });
+    $('#dlg').addEventListener('keydown', e => {           // el foco no sale del cuadro
+      if (e.key !== 'Tab') return;
+      const bs = [...$('#dlg').querySelectorAll('button')].filter(b => b.offsetParent !== null);
+      if (!bs.length) return;
+      const i = bs.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); bs[bs.length - 1].focus(); }
+      else if (!e.shiftKey && i === bs.length - 1) { e.preventDefault(); bs[0].focus(); }
+    });
   }
 
   // =========================================================================
@@ -378,10 +423,10 @@
       const c = S.custom.find(x => x.id === cb.dataset.exon);
       if (c) { c.on = cb.checked; saveCustom(); renderGimnasio(); }
     });
-    $('#exLista').addEventListener('click', e => {
+    $('#exLista').addEventListener('click', async e => {
       const d = e.target.closest('[data-exdel]'); if (!d) return;
       const c = S.custom.find(x => x.id === d.dataset.exdel);
-      if (c && confirm(`¿Eliminar “${c.n}”?`)) { S.custom = S.custom.filter(x => x !== c); saveCustom(); renderGimnasio(); toast('🗑️ Herramienta eliminada'); }
+      if (c && await mostrarDialogo({ mensaje: `¿Eliminar “${c.n}”?`, textoConfirmar: 'Eliminar', peligro: true })) { S.custom = S.custom.filter(x => x !== c); saveCustom(); renderGimnasio(); toast('🗑️ Herramienta eliminada'); }
     });
   }
   function bindGimnasio() {
@@ -1056,7 +1101,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#plClose').addEventListener('click', showExitDialog);
     $('#plExitContinue').addEventListener('click', () => { $('#plExit').hidden = true; setPaused(false); });
     $('#plExitSave').addEventListener('click', () => finishWorkout(true, true));
-    $('#plExitDiscard').addEventListener('click', () => { if (confirm('¿Salir sin guardar esta sesión?')) { stopSession(); popOverlayUI(); } });
+    $('#plExitDiscard').addEventListener('click', async () => { if (await mostrarDialogo({ mensaje: '¿Salir sin guardar esta sesión?', textoConfirmar: 'Salir sin guardar', peligro: true })) { stopSession(); popOverlayUI(); } });
     $('#plRpe').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       const id = curStep().rpe; if (!id) return;
@@ -1240,7 +1285,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     });
     $('#historial').addEventListener('click', async e => {
       const b = e.target.closest('[data-del]'); if (!b) return;
-      if (!confirm('¿Borrar esta sesión del historial?')) return;
+      if (!await mostrarDialogo({ mensaje: '¿Borrar esta sesión del historial?', textoConfirmar: 'Borrar', peligro: true })) return;
       await IDB.del('workouts', +b.dataset.del); await loadData(); renderProgreso(); toast('🗑️ Sesión eliminada');
     });
     $('#btnTour2').addEventListener('click', startTour);
@@ -1299,7 +1344,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     if (!f) return;
     try {
       const data = JSON.parse(await f.text());
-      if (!confirm(`¿Restaurar el respaldo del ${new Date(data.exportado).toLocaleString('es-MX')}? Se reemplazarán tus datos actuales.`)) return;
+      if (!await mostrarDialogo({ mensaje: `¿Restaurar el respaldo del ${new Date(data.exportado).toLocaleString('es-MX')}? Se reemplazarán tus datos actuales.`, textoConfirmar: 'Restaurar', peligro: true })) return;
       await restoreData(data); toast('✅ Respaldo restaurado'); setTimeout(() => location.reload(), 700);
     } catch (err) { toast('⚠️ ' + err.message, 3500); }
   }
@@ -1318,14 +1363,14 @@ Usa "reps" o "segundos" (el otro en null).`;
   function bindMirrors() {
     $('#mirrorList').addEventListener('click', async e => {
       const b = e.target.closest('[data-mirror]'); if (!b) return;
-      if (!confirm('¿Restaurar esta copia espejo? Se reemplazarán tus datos actuales.')) return;
+      if (!await mostrarDialogo({ mensaje: '¿Restaurar esta copia espejo? Se reemplazarán tus datos actuales.', textoConfirmar: 'Restaurar', peligro: true })) return;
       const m = (await IDB.all('mirror')).find(x => x.day === b.dataset.mirror);
       try { await restoreData(m.data); toast('✅ Copia restaurada'); setTimeout(() => location.reload(), 700); } catch (err) { toast('⚠️ ' + err.message); }
     });
   }
   async function resetAll() {
-    if (!confirm('¿Borrar TODOS tus datos de MiFitApp en este dispositivo? Esta acción no se puede deshacer.')) return;
-    if (!confirm('Última confirmación: ¿descargaste un respaldo?')) return;
+    if (!await mostrarDialogo({ mensaje: '¿Borrar TODOS tus datos de MiFitApp en este dispositivo? Esta acción no se puede deshacer.', textoConfirmar: 'Continuar', peligro: true })) return;
+    if (!await mostrarDialogo({ mensaje: 'Última confirmación: ¿descargaste un respaldo?', textoConfirmar: 'Sí, borrar todo', textoCancelar: 'Volver', peligro: true })) return;
     Object.values(K).forEach(k => LS.del(k));
     await IDB.clear('workouts'); await IDB.clear('metrics'); await IDB.clear('mirror');
     location.reload();
@@ -1607,7 +1652,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     $('#appVersion').textContent = `MiFitApp v${APP_VERSION} · Hecho para entrenar sin excusas`;
     await IDB.open();
     await loadData();
-    bindPerfil(); bindGimnasio(); bindRutina(); bindPlayer(); bindProgreso(); bindTour(); bindMirrors(); bindCatalog(); renderFAQ();
+    bindPerfil(); bindGimnasio(); bindRutina(); bindPlayer(); bindProgreso(); bindTour(); bindMirrors(); bindCatalog(); bindDialogo(); renderFAQ();
     $$('.bottom-nav button').forEach(b => b.addEventListener('click', () => { if (overlays.length) return; goTab(b.dataset.nav); }));
     $('#btnTheme').addEventListener('click', () => { const order = ['light', 'dark', 'auto']; const nx = order[(order.indexOf(themePref()) + 1) % 3]; setTheme(nx); toast({ light: '☀️ Tema claro', dark: '🌙 Tema oscuro', auto: '🌓 Tema automático' }[nx]); });
     $('#btnManual').addEventListener('click', openManual);
@@ -1639,6 +1684,6 @@ Usa "reps" o "segundos" (el otro en null).`;
   }
 
   // Exponer para depuración/pruebas
-  window.MiFitApp = { S, P, CAT, version: APP_VERSION, buildSteps, generarOffline, calcKcal, metDe, pesoKg, specTags };
+  window.MiFitApp = { S, P, CAT, version: APP_VERSION, buildSteps, generarOffline, calcKcal, metDe, pesoKg, specTags, mostrarDialogo };
   document.addEventListener('DOMContentLoaded', init);
 })();
