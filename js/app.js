@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.5.4'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.5.5'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
