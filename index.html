@@ -386,6 +386,18 @@
     </div>
   </div>
 
+  <!-- ===== Diálogo propio (reemplaza confirm() / alert() del navegador) ===== -->
+  <div class="dlg" id="dlg" hidden role="alertdialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgMsg">
+    <div class="dlg-card">
+      <h3 id="dlgTitle">MiFitApp</h3>
+      <p id="dlgMsg"></p>
+      <div class="dlg-actions">
+        <button class="btn btn-ghost" id="dlgCancel" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="dlgOk" type="button">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Tour guiado ===== -->
   <div class="tour" id="tour" hidden>
     <div class="tour-spot" id="tourSpot"></div>

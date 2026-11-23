@@ -130,6 +130,15 @@ Multiplicador por RPE: Fácil ×0.90 · Justo ×1.00 · Muy pesado ×1.15. El re
 - **Etiquetas guía:** Burpee, Burpee sin salto, Gusano y Caminata de manos ahora dicen *Core firme / Manos bajo hombros / Extensión completa*.
 - Solo cambian esas animaciones (verificado con huellas SHA-256 de los 12 avatares estilizados); datos de usuario intactos.
 
+## 💬 Diálogos propios (v1.5.6)
+
+Las ventanas nativas del navegador (`confirm()` / `alert()`, que mostraban «ferreconstrucontador.github.io dice») se reemplazaron por un diálogo propio con el título **MiFitApp** y los colores del tema (claro / oscuro / automático).
+
+- **API:** `mostrarDialogo({ titulo = 'MiFitApp', mensaje, textoConfirmar = 'Aceptar', textoCancelar = 'Cancelar', esAlerta = false, peligro = false })` devuelve una Promesa (`true` = confirmó, `false` = canceló; un aviso `esAlerta` siempre resuelve `true`). Si hay varios, se muestran en cola.
+- **Dónde se usa:** eliminar una herramienta extra, salir de un entrenamiento sin guardar, borrar una sesión del historial, restaurar un respaldo `.json` o una copia espejo y «Borrar todos mis datos» (dos confirmaciones). Las acciones destructivas usan el botón rojo y dejan el foco en «Cancelar».
+- **Botón Atrás (History API):** el diálogo es una capa más de la pila; **Atrás**, **Esc** o tocar fuera lo cancelan sin salir de la app ni de la pantalla (por ejemplo, el entrenamiento sigue activo).
+- No cambian los datos de `localStorage` ni de IndexedDB; `js/avatar.js` y `js/ejercicios.js` no se tocaron.
+
 ## 🦶 Contacto con el piso (v1.5.5)
 
 Auditoría de las 89 animaciones en uso: se midió la altura sobre el piso de los apoyos que deben tocar (manos, rodillas, pies, pelvis; 6 px = contacto ideal) en todos los fotogramas. Se corrigieron las animaciones que flotaban:
