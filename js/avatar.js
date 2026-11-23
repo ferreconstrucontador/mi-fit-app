@@ -23,8 +23,10 @@
   const KEYS = ['t', 'hd', 'sL', 'eL', 'sR', 'eR', 'hL', 'kL', 'hR', 'kR', 'j'];
 
   // ---------- Biblioteca de animaciones ----------
-  const plankUp = { t: 63, hL: -63, hR: -63, sL: 0, sR: 0 };
-  const quad = { t: 90, sL: 0, sR: 0, hL: 0, hR: 0, kL: 90, kR: 90 };
+  // Plancha alta: a 68.4° manos y puntas de los pies tocan el piso a la vez (a 63° las manos quedaban ~12 px en el aire)
+  const plankUp = { t: 68.4, hL: -68.4, hR: -68.4, sL: 0, sR: 0 };
+  // Cuadrupedia: torso inclinado ~18° y codos casi rectos para que manos y rodillas toquen a la vez (con el torso plano las rodillas quedaban a 25 px)
+  const quad = { t: 72, sL: 0, sR: 0, eL: 18, eR: 18, hL: 0, hR: 0, kL: 90, kR: 90 };
   const supineBent = { t: 270, hL: 135, hR: 135, kL: 110, kR: 110 };
   const squatLow = { t: 38, hL: 85, hR: 85, kL: 105, kR: 105 };
   const merge = (...o) => Object.assign({}, ...o);
@@ -63,14 +65,16 @@
     trxrow: { dur: 2200, trx: true, kf: [{ t: -32, hL: 32, hR: 32, sL: 105, sR: 105 }, { t: -14, hL: 14, hR: 14, sL: 20, eL: 120, sR: 20, eR: 120 }] },
     pullup: { dur: 2400, anchor: 'hands', bar: true, kf: [{ sL: 178, sR: 178, hL: -8, hR: -8, kL: 50, kR: 50 }, { sL: 22, eL: 152, sR: 22, eR: 152, hL: -8, hR: -8, kL: 50, kR: 50, hd: -8 }] },
     deadhang: { dur: 3000, anchor: 'hands', bar: true, kf: [{ sL: 178, sR: 178, hL: 0, hR: 4, kR: 10 }, { sL: 177, sR: 177, hL: 2, hR: 6, kR: 14, hd: -3 }] },
-    pushup: { dur: 2000, kf: [plankUp, { t: 80, hL: -80, hR: -80, sL: -42, eL: 70, sR: -42, eR: 70 }] },
+    // B: el cuerpo gira sobre las puntas (t 78°) con los codos a ~82°; manos y puntas siguen tocando el piso
+    pushup: { dur: 2000, kf: [plankUp, { t: 78, hL: -78, hR: -78, sL: -58, eL: 98, sR: -58, eR: 98 }] },
     // Rodillas apoyadas en el piso (pivote), pantorrillas y pies levantados hacia atrás (tibia fija a ~35° sobre el suelo);
     // manos y rodillas quedan a la misma altura en A y en B, y la distancia mano-rodilla se conserva.
     kneepushup: { dur: 2000, pf: true, kf: [{ t: 51.4, hL: -51.4, hR: -51.4, kL: 73.6, kR: 73.6, sL: 0, sR: 0 }, { t: 64, hL: -64, hR: -64, kL: 61, kR: 61, sL: -55.7, eL: 86.7, sR: -55.7, eR: 86.7 }] },
     inclinepushup: { dur: 2000, chair: 'hand', kf: [{ t: 46, hL: -46, hR: -46, sL: 0, sR: 0 }, { t: 56, hL: -56, hR: -56, sL: -45, eL: 75, sR: -45, eR: 75 }] },
     wallpushup: { dur: 2000, wall: 'hand', kf: [{ t: 20, hL: -20, hR: -20, sL: 80, sR: 80 }, { t: 26, hL: -26, hR: -26, sL: 30, eL: 95, sR: 30, eR: 95 }] },
-    pike: { dur: 2200, kf: [{ t: 138, hL: -42, hR: -42, sL: 42, sR: 42 }, { t: 150, hL: -40, hR: -40, sL: 72, eL: -70, sR: 72, eR: -70 }] },
-    floorpress: { dur: 2200, kf: [merge(supineBent, { sL: 95, eL: 85, sR: 95, eR: 85 }), merge(supineBent, { sL: 180, sR: 180 })] },
+    // V invertida con manos y pies en el piso en A y B (la cabeza baja poco: los brazos miden 63 px)
+    pike: { dur: 2200, kf: [{ t: 117.8, hL: -52.6, hR: -52.6, sL: 56.9, sR: 56.9 }, { t: 122.9, hL: -52.6, hR: -52.6, sL: 78.8, eL: -40.5, sR: 78.8, eR: -40.5 }] },
+    floorpress: { dur: 2200, anchor: 'pelvis', pelvisH: 13, kf: [merge(supineBent, { sL: 95, eL: 85, sR: 95, eR: 85 }), merge(supineBent, { sL: 180, sR: 180 })] },
     // Pullover: acostado boca arriba (pelvis en el piso), mancuerna con ambas manos; el brazo describe un arco de 180° → 276° (por encima de la cabeza, sin cruzar el cuerpo)
     pullover: { dur: 3000, anchor: 'pelvis', vb: [-22, -26, 244, 317], kf: [merge(supineBent, { sL: 180, sR: 180, eL: 8, eR: 8 }), merge(supineBent, { sL: 276, sR: 276, eL: 8, eR: 8 })] },
     curl: { dur: 1800, kf: [{ sL: 4, sR: 4, eL: 5, eR: 5 }, { sL: 8, sR: 8, eL: 135, eR: 135 }] },
@@ -80,25 +84,28 @@
     triext: { dur: 2000, kf: [{ sL: 165, sR: 165, eL: 165, eR: 165 }, { sL: 170, sR: 170, eL: 5, eR: 5 }] },
     kickback: { dur: 1900, kf: [{ t: 50, hL: 20, hR: 20, kL: 30, kR: 30, sL: -75, sR: -75, eL: 75, eR: 75 }, { t: 50, hL: 20, hR: 20, kL: 30, kR: 30, sL: -75, sR: -75, eL: 0, eR: 0 }] },
     dips: { dur: 2200, anchor: 'hands', handY: 168, chair: 'hand', kf: [{ hL: 75, hR: 75, kL: 70, kR: 70, sL: -15, sR: -15 }, { t: 6, hL: 80, hR: 80, kL: 55, kR: 55, sL: -78, eL: 78, sR: -78, eR: 78 }] },
-    plank: { dur: 3500, kf: [{ t: 78, hL: -78, hR: -78, sL: 0, sR: 0, eL: 90, eR: 90 }, { t: 78, hL: -78, hR: -78, sL: 0, sR: 0, eL: 90, eR: 90, hd: 6 }] },
+    // Antebrazos horizontales sobre el piso: a 81° muñecas, codos y puntas de los pies tocan a la vez
+    plank: { dur: 3500, kf: [{ t: 81, hL: -81, hR: -81, sL: 0, sR: 0, eL: 90, eR: 90 }, { t: 81, hL: -81, hR: -81, sL: 0, sR: 0, eL: 90, eR: 90, hd: 6 }] },
     // Plancha lateral: línea diagonal apoyada en el antebrazo (codo bajo el hombro, antebrazo en el piso) y en el borde de los pies; brazo superior extendido
     sideplank: { view: 'f', dur: 3500, kf: [{ t: 73, hR: -73, hL: 73, sR: 0, eR: -90, sL: 180 }, { t: 73, hR: -73, hL: 73, sR: 0, eR: -90, sL: 165, hd: 4 }] },
     // Toque de hombro: la mano que se despega sube cruzando el pecho hacia el hombro contrario
     shouldertap: { dur: 1600, kf: [merge(plankUp, { sR: -8, eR: 172 }), plankUp, merge(plankUp, { sL: -8, eL: 172 }), plankUp] },
-    crunch: { dur: 2000, armRel: true, kf: [merge(supineBent, { sL: 170, sR: 170, eL: 150, eR: 150 }), merge(supineBent, { t: 300, sL: 170, sR: 170, eL: 150, eR: 150 })] },
+    crunch: { dur: 2000, anchor: 'pelvis', pelvisH: 13, armRel: true, kf: [merge(supineBent, { sL: 170, sR: 170, eL: 150, eR: 150 }), merge(supineBent, { t: 300, sL: 170, sR: 170, eL: 150, eR: 150 })] },
     bicycle: { dur: 1600, armRel: true, kf: [{ t: 295, hL: 150, kL: 120, hR: 100, kR: 0, sL: 170, sR: 170, eL: 150, eR: 150 }, { t: 295, hR: 150, kR: 120, hL: 100, kL: 0, sL: 170, sR: 170, eL: 150, eR: 150 }] },
     // Dead bug: base con muslos verticales y rodillas a 90° y brazos hacia el techo; se extienden brazo y pierna contrarios hacia el piso y se regresa a la base
     deadbug: { dur: 4400, anchor: 'pelvis', vb: [-22, -26, 244, 317], kf: [{ t: 270, sL: 180, sR: 180, hL: 180, hR: 180, kL: 90, kR: 90 }, { t: 270, sR: 262, sL: 180, hL: 96, kL: 0, hR: 180, kR: 90 }, { t: 270, sL: 180, sR: 180, hL: 180, hR: 180, kL: 90, kR: 90 }, { t: 270, sL: 262, sR: 180, hR: 96, kR: 0, hL: 180, kL: 90 }] },
-    birddog: { dur: 2800, kf: [merge(quad, { sR: 95, hL: -90, kL: 0 }), quad, merge(quad, { sL: 95, hR: -90, kR: 0 }), quad] },
-    catcow: { dur: 3200, kf: [merge(quad, { t: 84, hd: 30 }), merge(quad, { t: 96, hd: -28 })] },
-    glutekick: { dur: 1800, kf: [quad, merge(quad, { hR: -100, kR: 80 })] },
-    legraise: { dur: 2400, kf: [{ t: 270, hL: 92, hR: 92, sL: 90, sR: 90 }, { t: 270, hL: 172, hR: 172, sL: 90, sR: 90 }] },
+    birddog: { dur: 2800, pf: true, kf: [merge(quad, { sR: 95, eR: 0, hL: -90, kL: 0 }), quad, merge(quad, { sL: 95, eL: 0, hR: -90, kR: 0 }), quad] },
+    catcow: { dur: 3200, pf: true, kf: [merge(quad, { t: 76, eL: 36, eR: 36, hd: 30 }), merge(quad, { t: 70, eL: 10, eR: 10, hd: -28 })] },
+    glutekick: { dur: 1800, pf: true, kf: [quad, merge(quad, { hR: -100, kR: 80 })] },
+    legraise: { dur: 2400, anchor: 'pelvis', pelvisH: 13, kf: [{ t: 270, hL: 92, hR: 92, sL: 90, sR: 90 }, { t: 270, hL: 172, hR: 172, sL: 90, sR: 90 }] },
     hollow: { dur: 3200, kf: [{ t: 285, hL: 105, hR: 105, sL: -110, sR: -110 }, { t: 288, hL: 108, hR: 108, sL: -112, sR: -112 }] },
-    russian: { dur: 1600, kf: [{ t: -35, hL: 60, hR: 60, kL: 60, kR: 60, sL: 30, sR: 30, eL: 60, eR: 60 }, { t: -35, hL: 60, hR: 60, kL: 60, kR: 60, sL: 80, sR: 80, eL: 20, eR: 20 }] },
+    // Giro ruso: sentado en el piso (pelvis a 10 px), torso inclinado atrás, rodillas flexionadas y pies apoyados
+    russian: { dur: 1600, anchor: 'pelvis', pelvisH: 10, kf: [{ t: -35, hL: 139.3, hR: 139.3, kL: 115.1, kR: 115.1, sL: 30, sR: 30, eL: 60, eR: 60 }, { t: -35, hL: 139.3, hR: 139.3, kL: 115.1, kR: 115.1, sL: 80, sR: 80, eL: 20, eR: 20 }] },
     // Hip thrust: espalda alta en un banco (escápulas), pies fijos en el piso; la cadera sube con la mancuerna sobre la pelvis
     hipthrust: { dur: 2600, bench: true, vb: [-22, -26, 244, 317], kf: [{ t: 290, hL: 115, hR: 115, kL: 105, kR: 105, sL: 46, eL: 56, sR: 46, eR: 56 }, { t: 270, hL: 90, hR: 90, kL: 90, kR: 90, sL: 69, eL: 50.5, sR: 69, eR: 50.5 }] },
-    bridge: { dur: 2200, kf: [merge(supineBent, { sL: -90, sR: -90, hL: 140, hR: 140, kL: 120, kR: 120 }), { t: 252, hL: 120, hR: 120, kL: 115, kR: 115, sL: -90, sR: -90 }] },
-    mountain: { dur: 700, kf: [merge(plankUp, { hR: 30, kR: 110 }), merge(plankUp, { hL: 30, kL: 110 })] },
+    // Puente: talones en el piso y cabeza apoyada (borde inferior ≥ 5.6 px) en A y B; en B la cadera sube a ~38 px y el cuello se flexiona 30°
+    bridge: { dur: 2200, kf: [{ t: 270, hd: -14.1, hL: 131.3, hR: 131.3, kL: 103.2, kR: 103.2, sL: -90, sR: -90 }, { t: 248.7, hd: -30, hL: 103.1, hR: 103.1, kL: 99.9, kR: 99.9, sL: -90, sR: -90 }] },
+    mountain: { dur: 700, kf: [merge(plankUp, { hR: 39.5, kR: 150.3 }), merge(plankUp, { hL: 39.5, kL: 150.3 })] },
     burpee: { dur: 3200, kf: [{ sL: 5, sR: 5 }, { t: 60, hL: 95, hR: 95, kL: 125, kR: 125, sL: 0, sR: 0 }, plankUp, { t: 60, hL: 95, hR: 95, kL: 125, kR: 125, sL: 0, sR: 0 }, { sL: 170, sR: 170, j: 18 }] },
     burpeelow: { dur: 4200, kf: [{ sL: 5, sR: 5 }, { t: 60, hL: 95, hR: 95, kL: 125, kR: 125, sL: 0, sR: 0 }, plankUp, { t: 60, hL: 95, hR: 95, kL: 125, kR: 125, sL: 0, sR: 0 }, { sL: 170, sR: 170 }] },
     inchworm: { dur: 4400, kf: [{ sL: 5, sR: 5 }, { t: 118, hL: 0, hR: 0, sL: 0, sR: 0 }, plankUp, { t: 118, hL: 0, hR: 0, sL: 0, sR: 0 }] },
@@ -118,7 +125,7 @@
     stretchside: { view: 'f', dur: 4200, kf: [{ t: -14, sR: 172, sL: 20 }, { t: 0, sR: 172, sL: 172 }, { t: 14, sL: 172, sR: 20 }, { t: 0, sR: 172, sL: 172 }] },
     stretchchest: { dur: 4000, wall: 'back', kf: [{ sL: -70, sR: -70, hd: -5 }, { sL: -82, sR: -82, hd: -8 }] },
     // Postura del niño: rodillas y empeines en el piso, glúteos sentados sobre los talones, torso sobre los muslos y brazos al frente en el suelo
-    child: { dur: 4500, pf: true, vb: [-22, -26, 244, 317], kf: [{ t: 96, hd: 16, hL: 75, hR: 75, kL: 165, kR: 165, sL: 90, sR: 90, eL: 0, eR: 0 }, { t: 90, hd: 12, hL: 75, hR: 75, kL: 165, kR: 165, sL: 92, sR: 92, eL: 0, eR: 0 }] },
+    child: { dur: 4500, pf: true, vb: [-22, -26, 244, 317], kf: [{ t: 96.3, hd: 27.2, hL: 62, hR: 62, kL: 152, kR: 152, sL: 76.8, sR: 76.8, eL: 0, eR: 0 }, { t: 96.4, hd: 4, hL: 62, hR: 62, kL: 152, kR: 152, sL: 76.9, sR: 76.9, eL: 0, eR: 0 }] },
     // Superman: decúbito prono. Pelvis y abdomen apoyados; brazos y piernas extendidos que se elevan en arco.
     superman: { dur: 3600, pf: true, anchor: 'pelvis', vb: [-22, -26, 244, 317], kf: [{ t: 90, hd: 14, sL: 98, sR: 98, eL: 0, eR: 0, hL: -92, hR: -92, kL: 0, kR: 0 }, { t: 76, hd: 8, sL: 112, sR: 112, eL: 0, eR: 0, hL: -112, hR: -112, kL: 0, kR: 0 }] },
     // Cobra suave (esfinge): pelvis, abdomen y piernas apoyados en el piso; solo el pecho se eleva, con los antebrazos en el suelo.
@@ -127,7 +134,7 @@
     ytw: { dur: 5400, pf: true, anchor: 'pelvis', vb: [-22, -26, 244, 317], kf: [{ t: 78, hd: 10, sL: 135, sR: 135, eL: 0, eR: 0, hL: -91, hR: -91, kL: 0, kR: 0 }, { t: 78, hd: 10, sL: 100, sR: 100, eL: -12, eR: -12, hL: -91, hR: -91, kL: 0, kR: 0 }, { t: 78, hd: 10, sL: 112, sR: 112, eL: 95, eR: 95, hL: -91, hR: -91, kL: 0, kR: 0 }] },
     // Jalón isométrico con toalla: de frente, manos separadas tensando la toalla desde arriba hasta el pecho
     towelpull: { view: 'f', dur: 2400, towel: true, kf: [{ sL: 165, sR: 165 }, { sL: 22, eL: 118, sR: 22, eR: 118, hd: 2 }] },
-    kneehug: { dur: 3600, kf: [{ t: 270, hL: 165, hR: 165, kL: 150, kR: 150, sL: 140, sR: 140, eL: 30, eR: 30 }, { t: 272, hL: 172, hR: 172, kL: 150, kR: 150, sL: 145, sR: 145, eL: 30, eR: 30 }] },
+    kneehug: { dur: 3600, anchor: 'pelvis', pelvisH: 13, kf: [{ t: 270, hL: 165, hR: 165, kL: 150, kR: 150, sL: 140, sR: 140, eL: 30, eR: 30 }, { t: 272, hL: 172, hR: 172, kL: 150, kR: 150, sL: 145, sR: 145, eL: 30, eR: 30 }] },
     dislocate: { view: 'f', dur: 3000, bandHands: true, kf: [{ sL: 30, sR: 30 }, { sL: 178, sR: 178 }] },
     pullapart: { view: 'f', dur: 2000, bandHands: true, kf: [{ sL: 80, eL: -70, sR: 80, eR: -70 }, { sL: 90, sR: 90 }] },
     // Escaladora vertical / Stepper: pasos alternos con las manos en el manillar. El accesorio 'stepper'
@@ -204,7 +211,7 @@
   }
   function anchorY(J, anim, S) {
     if (anim.anchor === 'hands') return (anim.handY || BAR_Y) - Math.min(J.WL[1], J.WR[1]);
-    if (anim.anchor === 'pelvis') return GROUND - 10 - J.P[1];      // boca abajo: el abdomen descansa en el piso
+    if (anim.anchor === 'pelvis') return GROUND - (anim.pelvisH || 10) - J.P[1];      // acostado / sentado: la pelvis descansa en el piso
     return GROUND - 6 - bounds(J, S).maxY;
   }
 

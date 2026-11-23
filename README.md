@@ -130,6 +130,18 @@ Multiplicador por RPE: Fácil ×0.90 · Justo ×1.00 · Muy pesado ×1.15. El re
 - **Etiquetas guía:** Burpee, Burpee sin salto, Gusano y Caminata de manos ahora dicen *Core firme / Manos bajo hombros / Extensión completa*.
 - Solo cambian esas animaciones (verificado con huellas SHA-256 de los 12 avatares estilizados); datos de usuario intactos.
 
+## 🦶 Contacto con el piso (v1.5.5)
+
+Auditoría de las 89 animaciones en uso: se midió la altura sobre el piso de los apoyos que deben tocar (manos, rodillas, pies, pelvis; 6 px = contacto ideal) en todos los fotogramas. Se corrigieron las animaciones que flotaban:
+
+- **Plancha alta** (base compartida, ahora 68.4°): `pushup` (Lagartija y variantes; en B el cuerpo gira sobre las puntas), `shouldertap`, `burpee`, `burpeelow`, `inchworm`; `mountain` reescrita (la rodilla viaja al pecho con el pie en el aire).
+- **Plancha de antebrazos** (`plank`): cuerpo a 81°, antebrazos horizontales sobre el piso. **Pike push-up** (`pike`).
+- **Cuadrupedia** (torso ~18° y codos casi rectos, pies hacia atrás sobre el piso): `catcow`, `glutekick`, `birddog`.
+- **Acostado:** `floorpress`, `crunch`, `kneehug`, `legraise` (pelvis a 13 px del piso, `anchor: 'pelvis'` con `pelvisH`) y `bridge` (talones y cabeza apoyados).
+- **Postura del niño** (`child`) recalculada y **Giro ruso** (`russian`): ahora sentado en el piso con pies apoyados.
+- Sin cambio: Fondos en silla (`dips`, pendiente de rediseño) y diferencias menores de 4–5 px (zancadas, estiramiento lateral, burpee agachado, gusano doblado).
+- Los demás animaciones (y el estilo de los 12 avatares estilizados) no cambian; se verificó con huellas SHA-256. Datos de usuario intactos.
+
 ## 🔍 Catálogo de Ejercicios (visor)
 
 En **Perfil** (y en **Progreso → Manual**) está el botón **🔍 Catálogo de Ejercicios (140)**. Abre una vista de pantalla completa para inspeccionar cualquier ejercicio sin esperar a que salga en una rutina:
