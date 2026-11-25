@@ -75,6 +75,80 @@
         <p class="hint" id="splitHint"></p>
       </div>
 
+      <div class="card" id="cardCuerpo">
+        <h3>🧬 Tipo de cuerpo y simetría</h3>
+        <p class="hint">Opcional: personaliza descansos, cardio y ejercicios de tus rutinas. Si no lo especificas, todo funciona como antes.</p>
+
+        <div class="lbl-row">
+          <label for="pSomato">Somatotipo</label>
+          <button type="button" class="help-btn" id="btnSomatoAyuda" aria-expanded="false" aria-controls="somatoGuia" aria-label="Guía rápida de somatotipos">?</button>
+        </div>
+        <select id="pSomato" aria-describedby="somatoNota">
+          <option value="">No especificado</option>
+          <option value="ecto">Ectomorfo</option>
+          <option value="meso">Mesomorfo</option>
+          <option value="endo">Endomorfo</option>
+        </select>
+        <p class="hint" id="somatoNota"></p>
+        <div class="help-panel" id="somatoGuia" hidden>
+          <p class="help-title">Guía rápida de somatotipos</p>
+          <p class="hint">Toca una tarjeta para elegir ese somatotipo. Es una clasificación orientativa: muchas personas combinan rasgos.</p>
+          <div class="somato-cards" id="somatoCards">
+            <button type="button" class="somato-card" data-somato="ecto" aria-pressed="false">
+              <svg viewBox="0 0 48 64" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M19 16h10l-1 24-2 20h-4l-2-20z"/></svg>
+              <span><b>Ectomorfo</b>
+                <small><u>Huesos:</u> finos, hombros y caderas estrechos, extremidades largas.</small>
+                <small><u>Metabolismo:</u> rápido; cuesta ganar peso y músculo.</small>
+                <small><u>Silueta:</u> delgada y alargada; con entrenamiento tiende a un ligero <em>triángulo invertido</em>.</small>
+                <small class="eff">En tu rutina: más ejercicios compuestos, poco cardio largo y descansos +15 s.</small></span>
+            </button>
+            <button type="button" class="somato-card" data-somato="meso" aria-pressed="false">
+              <svg viewBox="0 0 48 64" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M12 16h24l-8 18v26h-8V34z"/></svg>
+              <span><b>Mesomorfo</b>
+                <small><u>Huesos:</u> medianos, hombros anchos y tórax amplio.</small>
+                <small><u>Metabolismo:</u> eficiente; gana músculo y pierde grasa con relativa facilidad.</small>
+                <small><u>Silueta:</u> <em>triángulo invertido</em> (hombros anchos, cintura estrecha).</small>
+                <small class="eff">En tu rutina: balance estándar según tu objetivo.</small></span>
+            </button>
+            <button type="button" class="somato-card" data-somato="endo" aria-pressed="false">
+              <svg viewBox="0 0 48 64" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M17 16h14c7 10 7 22 2 28l-3 16H18l-3-16c-5-6-5-18 2-28z"/></svg>
+              <span><b>Endomorfo</b>
+                <small><u>Huesos:</u> estructura ancha, caderas y torso más anchos.</small>
+                <small><u>Metabolismo:</u> más lento; gana grasa con facilidad y cuesta bajarla.</small>
+                <small><u>Silueta:</u> redondeada, tipo pera o manzana.</small>
+                <small class="eff">En tu rutina: descansos más cortos (−10 a −15 s) y cardio de bajo impacto.</small></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="lbl-row">
+          <label for="pAsim">Asimetría en piernas</label>
+          <button type="button" class="help-btn" id="btnAsimAyuda" aria-expanded="false" aria-controls="asimGuia" aria-label="Cómo se adaptan los ejercicios">?</button>
+        </div>
+        <select id="pAsim">
+          <option value="ninguna">Ninguna</option>
+          <option value="longitud">Discrepancia de longitud / pierna más corta</option>
+          <option value="fuerza">Menor fuerza o movilidad en una pierna</option>
+        </select>
+        <div id="pAsimLadoWrap" hidden>
+          <p class="label">¿Qué pierna?</p>
+          <div class="seg" id="pAsimLado" role="radiogroup" aria-label="Pierna afectada">
+            <button type="button" data-v="izq" role="radio">Izquierda</button>
+            <button type="button" data-v="der" role="radio">Derecha</button>
+          </div>
+        </div>
+        <p class="hint" id="asimNota"></p>
+        <div class="help-panel" id="asimGuia" hidden>
+          <p class="help-title">¿Cómo se adaptan los ejercicios?</p>
+          <ul class="help-list">
+            <li>Se favorecen ejercicios estables a una pierna: puente a una pierna, zancada estática, subir al escalón, patada de glúteo y elevación de talones.</li>
+            <li>Se quitan saltos y ejercicios de impacto asimétrico alto, y se reducen los de impacto moderado.</li>
+            <li>En los ejercicios de tren inferior, la tarjeta te recuerda empezar la serie con la pierna indicada y repetir lo mismo con la otra.</li>
+          </ul>
+          <p class="hint warn">⚠️ Este ajuste no sustituye la valoración de un médico o fisioterapeuta. Si tienes dolor o dudas, consúltalo antes de entrenar.</p>
+        </div>
+      </div>
+
       <div class="card">
         <h3>Objetivo principal</h3>
         <div class="choice-grid" id="pObjetivo"></div>

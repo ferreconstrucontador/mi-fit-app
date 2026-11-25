@@ -130,9 +130,25 @@ Multiplicador por RPE: Fácil ×0.90 · Justo ×1.00 · Muy pesado ×1.15. El re
 - **Etiquetas guía:** Burpee, Burpee sin salto, Gusano y Caminata de manos ahora dicen *Core firme / Manos bajo hombros / Extensión completa*.
 - Solo cambian esas animaciones (verificado con huellas SHA-256 de los 12 avatares estilizados); datos de usuario intactos.
 
+## 🧬 Somatotipo y asimetría en piernas (v1.6.0)
+
+Dos campos opcionales en **Perfil → Tipo de cuerpo y simetría** (se guardan dentro de `mifit_profile`: `somatotipo` y `asimetria`; los perfiles y respaldos anteriores siguen funcionando igual y los datos no se reescriben hasta que los editas).
+
+- **Somatotipo** (`No especificado` por defecto, `Ectomorfo`, `Mesomorfo`, `Endomorfo`) con botón **?** que despliega una guía rápida integrada: 3 tarjetas con rasgo óseo, metabolismo y silueta (incluye la referencia al *triángulo invertido*). Tocar una tarjeta selecciona el somatotipo.
+  - **Ectomorfo:** favorece ejercicios compuestos, mitad de cardio y máx. 1 bloque (de ≤ 30 s), descansos +15 s.
+  - **Mesomorfo / no especificado:** sin cambios (balance estándar).
+  - **Endomorfo:** descansos −10 a −15 s y bloques de cardio de bajo impacto (también en hipertrofia y fuerza, uno cada 4 ejercicios).
+  - La movilidad no se modifica.
+- **Asimetría en piernas:** `Ninguna`, `Discrepancia de longitud / pierna más corta` o `Menor fuerza o movilidad en una pierna`, con lado `Izquierda` / `Derecha` (el ajuste se activa al elegir tipo y lado). Botón **?** con la explicación y el aviso de que no sustituye la valoración médica o de fisioterapia.
+  - Se favorecen unilaterales estables de tren inferior (puente a una pierna, zancada estática y hacia atrás, subir al escalón, sentadilla búlgara, patada de glúteo, elevación de talones), se **excluyen** saltos e impacto asimétrico alto (sentadilla con salto, burpee, skaters, cuerda, rodillas altas, talones al glúteo, jumping jacks, escaladora HIIT) y se reducen los de impacto moderado. Afecta al generador offline, al botón «Cambiar ejercicio» y al catálogo que recibe Gemini.
+  - Las tarjetas de tren inferior muestran una nota breve: empezar la serie con la pierna indicada y repetir con la otra.
+- **Gemini:** el prompt incluye el somatotipo y la asimetría (con lado) y las reglas correspondientes.
+- **Respaldo `.json`:** se exportan `somatotipo` y `asimetria` (además de dentro de `mifit_profile`); los respaldos de la v1.5.x se restauran sin tocar estos campos.
+- **Versión:** el caché del Service Worker pasa a llamarse `mifit-v1.6.0` (el `activate` limpia también los antiguos `mifitapp-…`). Ya no existe ninguna llamada a `alert()`, `confirm()` ni `prompt()` nativos: ver `GAP.md`.
+
 ## 💬 Diálogos propios (v1.5.6)
 
-Las ventanas nativas del navegador (`confirm()` / `alert()`, que mostraban «ferreconstrucontador.github.io dice») se reemplazaron por un diálogo propio con el título **MiFitApp** y los colores del tema (claro / oscuro / automático).
+Las ventanas nativas del navegador (`confirm()` / `alert()`, que mostraban el nombre del dominio de la página seguido de «dice») se reemplazaron por un diálogo propio con el título **MiFitApp** y los colores del tema (claro / oscuro / automático).
 
 - **API:** `mostrarDialogo({ titulo = 'MiFitApp', mensaje, textoConfirmar = 'Aceptar', textoCancelar = 'Cancelar', esAlerta = false, peligro = false })` devuelve una Promesa (`true` = confirmó, `false` = canceló; un aviso `esAlerta` siempre resuelve `true`). Si hay varios, se muestran en cola.
 - **Dónde se usa:** eliminar una herramienta extra, salir de un entrenamiento sin guardar, borrar una sesión del historial, restaurar un respaldo `.json` o una copia espejo y «Borrar todos mis datos» (dos confirmaciones). Las acciones destructivas usan el botón rojo y dejan el foco en «Cancelar».
