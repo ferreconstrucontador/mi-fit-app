@@ -386,7 +386,29 @@
 
   const LEVEL = { principiante: 1, intermedio: 2, avanzado: 3 };
 
+  // ---------- v1.6.0 · Somatotipo y asimetría en extremidades inferiores ----------
+  // Campos opcionales del perfil: perfil.somatotipo ('' | 'ecto' | 'meso' | 'endo') y
+  // perfil.asimetria { tipo: 'ninguna' | 'longitud' | 'fuerza', lado: 'izq' | 'der' }. Si faltan (datos anteriores) no se aplica ninguna regla.
+  const SOMATOTIPOS = { ecto: { n: 'Ectomorfo' }, meso: { n: 'Mesomorfo' }, endo: { n: 'Endomorfo' } };
+  const ASIM_TIPOS = { longitud: 'Discrepancia de longitud / pierna más corta', fuerza: 'Menor fuerza o movilidad en una pierna' };
+  const LADOS = { izq: 'izquierda', der: 'derecha' };
+  const somatotipoDe = perfil => (perfil && SOMATOTIPOS[perfil.somatotipo] ? perfil.somatotipo : '');
+  function asimetriaActiva(perfil) {                       // solo está activa con tipo y lado válidos
+    const a = perfil && perfil.asimetria;
+    return a && ASIM_TIPOS[a.tipo] && LADOS[a.lado] ? { tipo: a.tipo, lado: a.lado } : null;
+  }
+  const TREN_INF = new Set(['sentadilla', 'bisagra', 'zancada', 'gluteo', 'pantorrilla']);
+  const esTrenInferior = e => !!e && TREN_INF.has(e.p);
+  // Unilaterales estables de tren inferior (se favorecen con asimetría); las elevaciones de talones se hacen a una pierna
+  const UNILATERAL = new Set(['puente_1p', 'zancada_estatica', 'zancada_atras', 'zancada_mancuernas', 'step_up', 'sentadilla_bulgara', 'patada_gluteo', 'patada_gluteo_mb', 'elev_talones', 'elev_talones_mancuernas']);
+  // Pliometría / impacto asimétrico alto: se excluye con asimetría activa; los de impacto moderado solo se reducen
+  const IMPACTO_ASIM = new Set(['sentadilla_salto', 'burpee', 'skaters', 'saltar_cuerda', 'cuerda_suave', 'rodillas_altas', 'talones_gluteo', 'jumping_jacks', 'escaladora_hiit']);
+  const IMPACTO_REDUCIDO = new Set(['escaladores', 'burpee_sin_salto', 'zancada_lateral']);
+  const BAJO_IMPACTO = new Set(['marcha_rapida', 'boxeo_sombra', 'escaladora_constante', 'escaladora_lateral', 'gusano', 'caminata_lateral', 'jack_bajo']);
+  const COMPUESTO = new Set(['sentadilla', 'bisagra', 'zancada', 'empuje_h', 'empuje_v', 'tiron_h', 'tiron_v']);
+
   function permitido(e, ctx) {
+    if (ctx.asim && IMPACTO_ASIM.has(e.id)) return false;
     if (e.lv > ctx.lv) return false;
     if (e.ci.some(c => ctx.lesiones.includes(c))) return false;
     return e.eq.every(q => ctx.equipo.has(q));
@@ -447,6 +469,13 @@
     let rest = P.rest;
     if (e.p === 'cardio' && P.rest > 45) rest = 45;
     if (perfil.objetivo === 'fuerza' && (e.p === 'core' || e.p === 'brazos' || e.p === 'pantorrilla')) rest = 60;
+    // Somatotipo (mesomorfo / sin especificar: sin cambios). La movilidad no se modifica.
+    const soma = somatotipoDe(perfil);
+    if (perfil.objetivo !== 'movilidad') {
+      if (soma === 'ecto') { rest += 15; if (e.p === 'cardio' && mode === 'time') secs = Math.min(secs, 30); }   // más descanso y poco cardio continuo
+      else if (soma === 'endo') rest -= rest >= 45 ? 15 : 10;                                                  // transiciones más activas
+      rest = Math.max(10, Math.min(180, rest));
+    }
     return { id: e.id, block: 'pri', sets, mode, reps, secs, rest };
   }
 
@@ -468,7 +497,8 @@
    */
   function generarRutina(perfil, equipoIds, op = {}) {
     const dur = +op.duracion || 30;
-    const ctx = { lv: LEVEL[perfil.nivel] || 1, lesiones: perfil.lesiones || [], equipo: new Set(['corporal'].concat(equipoIds || [])) };
+    const ctx = { lv: LEVEL[perfil.nivel] || 1, lesiones: perfil.lesiones || [], equipo: new Set(['corporal'].concat(equipoIds || [])), asim: asimetriaActiva(perfil) };
+    const soma = somatotipoDe(perfil);
     const r = rng(op.semilla != null ? op.semilla : hash(new Date().toDateString()));
     const dia = tipoDia(perfil, op.indiceSesion || 0);
     const plantilla = DIAS[dia];
@@ -497,12 +527,22 @@
       if (perfil.objetivo === 'fuerza') w *= e.lv;
       if (recientes.has(e.id)) w *= 0.4;
       if (extras.some(c => c.test(e))) w *= 1.5;   // herramienta extra activa del usuario
+      if (ctx.asim) {                              // asimetría: unilaterales estables arriba; impacto reducido abajo
+        if (esTrenInferior(e) && UNILATERAL.has(e.id)) w *= 2.5;
+        if (IMPACTO_REDUCIDO.has(e.id)) w *= 0.4;
+      }
+      if (soma === 'ecto') { if (COMPUESTO.has(e.p)) w *= 1.5; if (e.p === 'cardio') w *= 0.5; }
+      else if (soma === 'endo' && e.p === 'cardio') w *= BAJO_IMPACTO.has(e.id) ? 2.5 : 0.4;
       return w;
     };
+    // Cardio dentro del bloque principal: ectomorfo = la mitad de frecuencia y máx. 1 bloque; endomorfo = bloques de bajo impacto
+    let cardioCada = P.cardioCada, nCardio = 0;
+    if (soma === 'ecto') cardioCada = cardioCada ? cardioCada * 2 : 0;
+    else if (soma === 'endo' && !cardioCada && (perfil.objetivo === 'hipertrofia' || perfil.objetivo === 'fuerza')) cardioCada = 4;
     let pi = 0, guard = 0, desdeCardio = 0, fallos = 0;
     while (budget > 60 && guard++ < 40) {
       let patron = plantilla.pat[pi % plantilla.pat.length];
-      if (P.cardioCada && desdeCardio >= P.cardioCada) { patron = 'cardio'; desdeCardio = -1; }
+      if (cardioCada && desdeCardio >= cardioCada && !(soma === 'ecto' && nCardio >= 1)) { patron = 'cardio'; desdeCardio = -1; }
       pi += patron === 'cardio' && desdeCardio === -1 ? 0 : 1;
       desdeCardio++;
       const cand = pri.filter(e => e.p === patron);
@@ -512,6 +552,7 @@
       const d = duracionItem(it);
       if (d > budget * 1.35 && items.some(x => x.block === 'pri')) break;
       usados.add(e.id); items.push(it); budget -= d;
+      if (e.p === 'cardio') nCardio++;
       if (items.filter(x => x.block === 'pri').length >= 12) break;
     }
     // Si faltan ejercicios disponibles, completa el tiempo agregando series
@@ -534,7 +575,7 @@
   function alternativa(item, perfil, equipoIds, excluir) {
     const e = BY_ID[item.id];
     if (!e) return null;
-    const ctx = { lv: LEVEL[perfil.nivel] || 1, lesiones: perfil.lesiones || [], equipo: new Set(['corporal'].concat(equipoIds || [])) };
+    const ctx = { lv: LEVEL[perfil.nivel] || 1, lesiones: perfil.lesiones || [], equipo: new Set(['corporal'].concat(equipoIds || [])), asim: asimetriaActiva(perfil) };
     const fase = item.block === 'cal' ? 'c' : item.block === 'enf' ? 'e' : 'p';
     let cand = disponibles(ctx, fase).filter(x => x.id !== e.id && !excluir.has(x.id));
     let mismo = cand.filter(x => x.p === e.p);
@@ -550,6 +591,7 @@
 
   global.MiFitDB = {
     EQUIPO, EQUIPO_NOMBRE, LESIONES, COMPAT, COMPAT_BY_ID, MUSCULOS, PREP_SECS, parseMus, musNombres, guiaDe, OBJETIVOS, EJERCICIOS: X, BY_ID, DIAS, PARAMS,
-    generarRutina, alternativa, prescribir, permitido, disponibles, estimarMinutos, duracionItem, hash, LEVEL
+    generarRutina, alternativa, prescribir, permitido, disponibles, estimarMinutos, duracionItem, hash, LEVEL,
+    SOMATOTIPOS, ASIM_TIPOS, LADOS, somatotipoDe, asimetriaActiva, esTrenInferior, UNILATERAL, IMPACTO_ASIM, BAJO_IMPACTO
   };
 })(window);

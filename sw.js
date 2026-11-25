@@ -4,8 +4,8 @@
    (y APP_VERSION en js/app.js). Así los teléfonos descargan la nueva versión
    y la app muestra el aviso "Nueva versión disponible".
    ========================================================================= */
-const VERSION = '1.5.6';
-const CACHE = `mifitapp-v${VERSION}`;
+const VERSION = '1.6.0';
+const CACHE = `mifit-v${VERSION}`;   // prefijo nuevo; el activate también limpia los cachés antiguos «mifitapp-»
 const ASSETS = [
   './',
   './index.html',
@@ -38,7 +38,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('mifitapp-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => (k.startsWith('mifitapp-') || k.startsWith('mifit-v')) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

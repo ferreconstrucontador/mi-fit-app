@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.5.6'; // Mantener igual a VERSION en sw.js
+  const APP_VERSION = '1.6.0'; // Mantener igual a VERSION en sw.js
   const HOME_TAB = 'rutina';   // Pestaña principal: "Atrás" regresa aquí antes de salir
   const TABS = ['perfil', 'gimnasio', 'rutina', 'entrenador', 'progreso'];
   const DB = window.MiFitDB;
@@ -38,11 +38,19 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* nada */ } }
   };
 
-  const DEF_PROFILE = { edad: 30, sexo: 'm', peso: 70, estatura: 170, nivel: 'principiante', dias: 3, objetivo: 'hipertrofia', lesiones: [] };
+  // v1.6.0: somatotipo ('' = no especificado) y asimetría en piernas son opcionales; los perfiles anteriores quedan igual
+  const DEF_PROFILE = { edad: 30, sexo: 'm', peso: 70, estatura: 170, nivel: 'principiante', dias: 3, objetivo: 'hipertrofia', lesiones: [], somatotipo: '', asimetria: { tipo: 'ninguna', lado: '' } };
+  function normPerfil(p) {
+    p.somatotipo = DB.somatotipoDe(p);
+    const a = p.asimetria && typeof p.asimetria === 'object' ? p.asimetria : {};
+    const tipo = DB.ASIM_TIPOS[a.tipo] ? a.tipo : 'ninguna';
+    p.asimetria = { tipo, lado: tipo !== 'ninguna' && DB.LADOS[a.lado] ? a.lado : '' };
+    return p;
+  }
   const DEF_SETTINGS = { genero: 'm', personaje: '', acento: 'naranja', enfoque: false, voz: true, vibra: true, beep: true, duracion: 30, apiKey: '', sesion: 0 };
 
   const S = {
-    profile: Object.assign({}, DEF_PROFILE, LS.get(K.profile, {})),
+    profile: normPerfil(Object.assign({}, DEF_PROFILE, LS.get(K.profile, {}))),
     equip: LS.get(K.equip, ['tapete']),
     specs: LS.get(K.specs, {}),
     custom: LS.get(K.custom, []),
@@ -66,7 +74,14 @@
   if (!ACCENTS.some(a => a.id === S.settings.acento)) S.settings.acento = 'naranja';
   const charById = id => CHARS.find(c => c.id === id) || CHARS[0];
   const avOpts = () => ({ char: S.settings.personaje, accent: S.settings.acento });
-  const saveProfile = () => { LS.set(K.profile, S.profile); S.routineDirty = true; };
+  // Los campos opcionales nuevos (somatotipo, asimetría) solo se guardan cuando el usuario los elige: un perfil anterior queda idéntico
+  const perfilGuardable = () => {
+    const p = Object.assign({}, S.profile);
+    if (!p.somatotipo) delete p.somatotipo;
+    if (!p.asimetria || p.asimetria.tipo === 'ninguna') delete p.asimetria;
+    return p;
+  };
+  const saveProfile = () => { LS.set(K.profile, perfilGuardable()); S.routineDirty = true; };
   const saveSettings = () => LS.set(K.settings, S.settings);
   const travelActive = () => S.travel && S.travel.fecha === dayKey();
   const equipoEfectivo = () => (travelActive() ? S.travel.equipo : S.equip);
@@ -255,6 +270,12 @@
     });
   }
 
+  // Regla de la app (GAP.md): cero diálogos nativos del navegador. Si una llamada futura usa alert/confirm/prompt,
+  // alert se muestra con el diálogo propio y confirm/prompt se bloquean (devuelven false/null) en vez de abrir la ventana nativa.
+  window.alert = m => { mostrarDialogo({ mensaje: String(m == null ? '' : m), esAlerta: true }); };
+  window.confirm = () => { console.error('confirm() nativo bloqueado: usa mostrarDialogo()'); return false; };
+  window.prompt = () => { console.error('prompt() nativo bloqueado: usa mostrarDialogo()'); return null; };
+
   // =========================================================================
   //  PESTAÑA 1 · PERFIL
   // =========================================================================
@@ -262,6 +283,7 @@
     const p = S.profile;
     $('#pEdad').value = p.edad || ''; $('#pSexo').value = p.sexo; $('#pPeso').value = p.peso || ''; $('#pEstatura').value = p.estatura || '';
     setSeg('#pNivel', p.nivel); setSeg('#pDias', String(p.dias));
+    renderCuerpo();
     $('#pObjetivo').innerHTML = Object.entries(DB.OBJETIVOS).map(([k, o]) =>
       `<button class="choice ${p.objetivo === k ? 'on' : ''}" data-v="${k}" role="radio" aria-checked="${p.objetivo === k}"><span class="ci">${o.i}</span><span><b>${o.n}</b><small>${o.d}</small></span></button>`).join('');
     const les = p.lesiones || [];
@@ -275,6 +297,28 @@
     const lb = LS.get(K.lastBackup, 0);
     $('#lastBackupInfo').textContent = lb ? `Último respaldo: ${new Date(lb).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Aún no has hecho un respaldo.';
     renderMirrors();
+  }
+  // Somatotipo y asimetría en piernas (opcionales)
+  const SOMA_NOTA = {
+    ecto: 'Tus rutinas priorizan ejercicios compuestos, limitan el cardio continuo largo y alargan los descansos 15 s.',
+    meso: 'Tus rutinas mantienen el balance estándar según tu objetivo.',
+    endo: 'Tus rutinas acortan los descansos 10–15 s y favorecen cardio de bajo impacto.'
+  };
+  function renderCuerpo() {
+    const p = S.profile, a = p.asimetria;
+    $('#pSomato').value = p.somatotipo;
+    $('#somatoNota').textContent = SOMA_NOTA[p.somatotipo] || '';
+    $$('#somatoCards .somato-card').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.somato === p.somatotipo)));
+    $('#pAsim').value = a.tipo;
+    $('#pAsimLadoWrap').hidden = a.tipo === 'ninguna';
+    setSeg('#pAsimLado', a.lado);
+    $('#asimNota').textContent = a.tipo === 'ninguna' ? '' : DB.asimetriaActiva(p)
+      ? `Ajuste activo: pierna ${DB.LADOS[a.lado]}. Se favorecen ejercicios a una pierna estables y se evitan saltos.`
+      : 'Elige la pierna para activar el ajuste.';
+  }
+  function toggleAyuda(btnSel, panelSel, forzar) {
+    const b = $(btnSel), pn = $(panelSel), abrir = forzar != null ? forzar : pn.hidden;
+    pn.hidden = !abrir; b.setAttribute('aria-expanded', String(abrir));
   }
   function renderBio() {
     const p = S.profile, kg = +p.peso, cm = +p.estatura, edad = +p.edad;
@@ -303,6 +347,24 @@
       let l = S.profile.lesiones || [];
       if (b.dataset.v === 'none') l = []; else l = l.includes(b.dataset.v) ? l.filter(x => x !== b.dataset.v) : l.concat(b.dataset.v);
       S.profile.lesiones = l; saveProfile(); renderPerfil();
+    });
+    // Somatotipo + guía rápida (panel integrado, sin ventanas del navegador)
+    $('#btnSomatoAyuda').addEventListener('click', () => toggleAyuda('#btnSomatoAyuda', '#somatoGuia'));
+    $('#pSomato').addEventListener('change', e => { S.profile.somatotipo = DB.somatotipoDe({ somatotipo: e.target.value }); saveProfile(); renderCuerpo(); toast('🧬 Somatotipo actualizado'); });
+    $('#somatoCards').addEventListener('click', e => {
+      const b = e.target.closest('.somato-card'); if (!b) return;
+      S.profile.somatotipo = b.dataset.somato; saveProfile(); renderCuerpo(); toast('🧬 Somatotipo: ' + DB.SOMATOTIPOS[b.dataset.somato].n);
+    });
+    // Asimetría en extremidades inferiores
+    $('#btnAsimAyuda').addEventListener('click', () => toggleAyuda('#btnAsimAyuda', '#asimGuia'));
+    $('#pAsim').addEventListener('change', e => {
+      const tipo = DB.ASIM_TIPOS[e.target.value] ? e.target.value : 'ninguna';
+      S.profile.asimetria = { tipo, lado: tipo === 'ninguna' ? '' : S.profile.asimetria.lado };
+      saveProfile(); renderCuerpo(); toast(tipo === 'ninguna' ? '🦵 Sin asimetría' : '🦵 Asimetría registrada');
+    });
+    $('#pAsimLado').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      S.profile.asimetria.lado = b.dataset.v; saveProfile(); renderCuerpo(); toast('🦵 Pierna ' + DB.LADOS[b.dataset.v]);
     });
     bindGallery($('#galeriaPerfil'));
     $('#sVoz').addEventListener('change', e => { S.settings.voz = e.target.checked; saveSettings(); });
@@ -514,6 +576,16 @@
     if (!r || !r.items || !r.items.length || r.fecha !== dayKey() || r.sesion !== S.settings.sesion || S.routineDirty || r.duracion !== S.settings.duracion || !!r.viaje !== !!travelActive()) generarOffline(false);
   }
 
+  // Nota breve en ejercicios de tren inferior cuando hay asimetría activa
+  const UNI_EXTRA = new Set(['peso_muerto_1p', 'abduccion_pie', 'abduccion_mb', 'zancada_lateral']);
+  function asimNota(e) {
+    const a = DB.asimetriaActiva(S.profile);
+    if (!a || !DB.esTrenInferior(e)) return '';
+    const lado = DB.LADOS[a.lado], det = a.tipo === 'longitud' ? 'la más corta' : 'la de menor fuerza o movilidad';
+    if (DB.UNILATERAL.has(e.id) || UNI_EXTRA.has(e.id))
+      return `<p class="ex-asim">⚖️ Empieza cada serie con tu pierna ${lado} (${det}) y repite lo mismo con la otra${e.id.startsWith('elev_talones') ? '. Hazla a una pierna a la vez' : ''}.</p>`;
+    return `<p class="ex-asim">⚖️ Vigila que tu pierna ${lado} (${det}) no se quede atrás en recorrido y esfuerzo.</p>`;
+  }
   function itemMeta(it) {
     if (it.mode === 'time') return `${it.sets > 1 ? it.sets + ' × ' : ''}${it.secs}s`;
     return `${it.sets} × ${it.reps} reps`;
@@ -559,6 +631,7 @@
             <p class="ex-muscles">🎯 ${esc(e.m)}</p>
             ${it.nota ? `<p class="ex-muscles">✨ ${esc(it.nota)}</p>` : ''}
             ${specBadges(e)}
+            ${asimNota(e)}
             ${it.block === 'pri' ? progHint(it.id) : ''}
           </div>
           <div class="ex-actions">
@@ -637,7 +710,15 @@
     const btn = $('#btnIA'); btn.disabled = true; btn.textContent = '⏳ Pensando…';
     try {
       const p = S.profile;
-      const ctx = { lv: DB.LEVEL[p.nivel] || 1, lesiones: p.lesiones || [], equipo: new Set(['corporal'].concat(equipoEfectivo())) };
+      const ctx = { lv: DB.LEVEL[p.nivel] || 1, lesiones: p.lesiones || [], equipo: new Set(['corporal'].concat(equipoEfectivo())), asim: DB.asimetriaActiva(p) };
+      const asimP = DB.asimetriaActiva(p), somaP = DB.somatotipoDe(p);
+      const cuerpoTxt = `Somatotipo: ${somaP ? DB.SOMATOTIPOS[somaP].n : 'no especificado'}. Asimetría en extremidades inferiores: ${asimP ? DB.ASIM_TIPOS[asimP.tipo] + ', pierna ' + DB.LADOS[asimP.lado] : 'ninguna'}.`;
+      const cuerpoReglas = [
+        somaP === 'ecto' ? 'Somatotipo ectomorfo: prioriza ejercicios compuestos de fuerza/hipertrofia, limita el cardio continuo largo y usa descansos 15 s más largos de lo habitual.' : '',
+        somaP === 'endo' ? 'Somatotipo endomorfo: descansos 10-15 s más cortos que lo habitual y bloques cardiovasculares de bajo impacto para elevar el gasto calórico.' : '',
+        somaP === 'meso' ? 'Somatotipo mesomorfo: balance estándar según el objetivo.' : '',
+        asimP ? `Asimetría en la pierna ${DB.LADOS[asimP.lado]}: prioriza ejercicios unilaterales estables de tren inferior (puente a una pierna, zancada estática, elevación de talones, patada de glúteo), evita saltos y pliometría de impacto, y en la "nota" de cada ejercicio de tren inferior indica empezar la serie con la pierna ${DB.LADOS[asimP.lado]} y repetir lo mismo con la otra.` : ''
+      ].filter(Boolean).join('\n');
       const lista = DB.EJERCICIOS.filter(e => DB.permitido(e, ctx));
       const catalogo = lista.map(e => `${e.id}|${e.n}|${e.p}|${e.f}|${e.t === 's' ? 'seg' : 'reps'}|${e.eq.join('+') || 'corporal'}`).join('\n');
       const specsTxt = equipoEfectivo().filter(q => specTags(q).length).map(q => `${DB.EQUIPO_NOMBRE[q]}: ${specText(q)}`).join('; ');
@@ -647,6 +728,7 @@
       const prompt = `Eres un entrenador personal certificado. Diseña la sesión de HOY en español.
 Perfil: ${p.edad} años, ${p.sexo === 'f' ? 'mujer' : 'hombre'}, ${p.peso} kg, ${p.estatura} cm, nivel ${p.nivel}, entrena ${p.dias} días/semana.
 Objetivo: ${DB.OBJETIVOS[p.objetivo].n}. Lesiones/limitaciones: ${(p.lesiones || []).join(', ') || 'ninguna'}.
+${cuerpoTxt}
 Equipo disponible: ${['Peso corporal'].concat(equipoEfectivo().map(i => DB.EQUIPO_NOMBRE[i])).join(', ')}.
 Especificaciones técnicas del equipo del usuario (peso, ángulo o resistencia): ${specsTxt || 'sin datos'}.
 Herramientas extra del usuario (no tienen id propio): ${customTxt || 'ninguna'}.
@@ -654,7 +736,7 @@ Duración total: ${S.settings.duracion} minutos. Enfoque sugerido del día: ${di
 Sensaciones recientes (RPE): ${progTxt || 'sin datos'}.
 Usa EXCLUSIVAMENTE ids de este catálogo (id|nombre|patrón|fases c=calentamiento p=principal e=enfriamiento|tipo|equipo requerido):
 ${catalogo}
-Reglas: bloque "cal" 3-6 ejercicios de 30-40 s; bloque "pri" coherente con el objetivo; bloque "enf" 3-6 estiramientos de 30-45 s.
+${cuerpoReglas ? cuerpoReglas + '\n' : ''}Reglas: bloque "cal" 3-6 ejercicios de 30-40 s; bloque "pri" coherente con el objetivo; bloque "enf" 3-6 estiramientos de 30-45 s.
 Cada repetición ≈ 3.5 s. La suma de trabajo + descansos debe aproximarse a ${S.settings.duracion} minutos.
 Elige ejercicios SOLO por su id del catálogo (nunca inventes ejercicios ni ids). En "nota" de cada ejercicio que use un equipo con especificación, menciona el peso, ángulo o resistencia exacta del equipo del usuario (por ejemplo "usa 12 lb" o "inclinación 45°, 2 resortes"). Si hay herramientas extra, sugiérelas solo en la nota de ejercicios del catálogo cuya compatibilidad coincida.
 Responde SOLO JSON: {"explicacion":"3-4 frases motivadoras explicando la lógica de la sesión","ejercicios":[{"id":"","bloque":"cal|pri|enf","series":3,"reps":12,"segundos":null,"descanso":60,"nota":"consejo breve"}]}
@@ -1279,7 +1361,7 @@ Usa "reps" o "segundos" (el otro en null).`;
       ['peso', 'cintura', 'cadera', 'brazo', 'muslo'].forEach(k => { const v = parseFloat($('#m' + k[0].toUpperCase() + k.slice(1)).value); if (v > 0) { rec[k] = v; any = true; } });
       if (!any) { toast('Escribe al menos una medida'); return; }
       await IDB.put('metrics', rec);
-      if (rec.peso && rec.fecha === dayKey()) { S.profile.peso = rec.peso; LS.set(K.profile, S.profile); }
+      if (rec.peso && rec.fecha === dayKey()) { S.profile.peso = rec.peso; LS.set(K.profile, perfilGuardable()); }
       LS.set(K.lastActivity, Date.now());
       await loadData(); saveMirror(); renderProgreso(); toast('📏 Medidas guardadas');
     });
@@ -1302,7 +1384,7 @@ Usa "reps" o "segundos" (el otro en null).`;
     // Especificaciones: en el respaldo las etiquetas de cada equipo se unen con coma (compatible con el formato de texto de la v1.5.0)
     const specsPlano = {}; Object.keys(S.specs).forEach(id => { const t = specText(id); if (t) specsPlano[id] = t; });
     if (ls[K.specs] != null) ls[K.specs] = JSON.stringify(specsPlano);
-    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), entrenador: { personaje: S.settings.personaje, acento: S.settings.acento }, equipoSpecs: specsPlano, equipoSpecsFormato: 'coma', equipoCustom: S.custom, localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
+    return { app: 'MiFitApp', version: APP_VERSION, exportado: new Date().toISOString(), entrenador: { personaje: S.settings.personaje, acento: S.settings.acento }, equipoSpecs: specsPlano, equipoSpecsFormato: 'coma', somatotipo: S.profile.somatotipo || undefined, asimetria: S.profile.asimetria && S.profile.asimetria.tipo !== 'ninguna' ? S.profile.asimetria : undefined, equipoCustom: S.custom, localStorage: ls, workouts: await IDB.all('workouts'), metrics: await IDB.all('metrics') };
   }
   const backupName = () => `mifitapp-respaldo-${dayKey()}.json`;
   async function exportBackup() {
@@ -1334,6 +1416,15 @@ Usa "reps" o "segundos" (el otro en null).`;
       } else LS.set(K.specs, data.equipoSpecs);      // respaldo v1.5.0: texto simple (se respeta como primera etiqueta)
     }
     if (Array.isArray(data.equipoCustom)) LS.set(K.custom, data.equipoCustom);
+    // v1.6.0: somatotipo y asimetría (los respaldos anteriores no los traen y no se tocan)
+    if (data.somatotipo !== undefined || data.asimetria !== undefined) {
+      const pr = LS.get(K.profile, null);
+      if (pr && typeof pr === 'object') {
+        if (pr.somatotipo === undefined && data.somatotipo) pr.somatotipo = data.somatotipo;
+        if (pr.asimetria === undefined && data.asimetria && data.asimetria.tipo && data.asimetria.tipo !== 'ninguna') pr.asimetria = data.asimetria;
+        LS.set(K.profile, pr);
+      }
+    }
     if (keepKey) { const s = LS.get(K.settings, {}); s.apiKey = keepKey; LS.set(K.settings, s); }
     await IDB.clear('workouts'); await IDB.clear('metrics');
     for (const w of data.workouts || []) await IDB.put('workouts', w);
